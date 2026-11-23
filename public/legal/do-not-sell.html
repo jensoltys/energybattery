@@ -1,0 +1,100 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-only | Copyright (C) 2026 the Energy Battery authors. See LICENSE. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Do Not Sell or Share My Personal Information &middot; Energy Battery</title>
+<meta name="description" content="CCPA / CPRA disclosure for Energy Battery. Operated by YOUR COMPANY NAME."/>
+<meta name="robots" content="index,follow"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%23E85F45'/><rect x='26' y='6' width='12' height='6' rx='2' fill='%23fff'/><rect x='16' y='11' width='32' height='42' rx='10' fill='%23fff'/><rect x='20' y='25' width='24' height='24' rx='8' fill='%23FFC247'/><path d='M38 15 L22 35 h9 l-3.5 13 16-20h-9z' fill='%23E85F45'/></svg>"/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1A1C;
+  --amber:#FF7F66;
+  --amber-d:#E85F45;
+  /* WCAG AA text-safe amber (>=4.5:1 on the cream bg) — use for text/links, not fills */
+  --amber-t:#FF7F66;
+  --orange:#FFB09F;
+  --volt:#FFC247;
+  --text:#EEF5F3;
+  --muted:#9BB3AE;
+  --card:rgba(28,48,53,.65);
+  --card-border:rgba(28,48,53,.8);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{overflow-x:hidden}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 1rem}
+.wrap{max-width:780px;margin:0 auto;background:var(--card);border:1px solid var(--card-border);border-radius:18px;padding:2rem 1.75rem;backdrop-filter:blur(20px);box-shadow:0 8px 60px rgba(255,127,102,.08),0 2px 8px rgba(0,0,0,.03)}
+h1{font-family:var(--font-head);font-size:1.8rem;background:linear-gradient(135deg,var(--amber) 0%,var(--orange) 50%,var(--volt) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.5rem;line-height:1.3;padding-bottom:4px}
+h2{font-family:var(--font-head);font-size:1.15rem;color:var(--amber-t);margin:1.6rem 0 .5rem}
+p,li{font-size:.95rem;line-height:1.7;color:var(--text);margin-bottom:.6rem}
+ul{margin:0 0 .8rem 1.25rem}
+a{color:var(--amber-t);text-decoration:underline;text-underline-offset:2px}
+a:hover{text-decoration:underline}
+.muted{color:var(--muted);font-size:.85rem}
+.entity{background:rgba(255,127,102,.08);border:1px solid rgba(255,127,102,.18);border-radius:12px;padding:1rem 1.25rem;margin:1rem 0;font-size:.9rem}
+.back{display:inline-block;margin-bottom:1.25rem;color:var(--muted);font-size:.85rem;padding:11px 6px;margin:0 -6px 1rem}
+/* Offsetting negative margin grows the tap target to >=40px without moving the layout */
+nav.muted a{display:inline-block;padding:12px 6px;margin:0 -6px}
+/* Brand lockup — hand-synced copy of the geometry in public/index.html.
+   Hexes hardcoded on purpose so the mark renders identically everywhere.
+   Other copies: index.html, og-preview.html, the favicon data URIs. */
+.eb-brand{display:inline-flex;align-items:center;gap:8px;text-decoration:none;padding:8px 6px;margin:-8px -6px 1.1rem}
+.eb-brand svg{display:block;flex:none}
+.eb-brand:hover{text-decoration:none}
+.eb-word{font-family:var(--font-head);font-weight:700;font-size:19px;letter-spacing:.2px;white-space:nowrap;line-height:1}
+.eb-word-ink{color:var(--text)}
+.eb-word-pop{position:relative;color:var(--amber-t)}
+.eb-word-swoosh{position:absolute;left:0;right:0;width:100%;height:.4em;bottom:-.28em;overflow:visible}
+:root{--font-head:'Bricolage Grotesque','Avenir Next',system-ui,sans-serif;--font-body:'Figtree','Avenir Next',system-ui,sans-serif;--on-primary:#2B0C05}button,input,select,textarea{font-family:inherit}</style>
+</head>
+<body>
+<main class="wrap">
+<a class="eb-brand" href="/" aria-label="Energy Battery home"><svg width="30" height="30" viewBox="0 0 80 80" aria-hidden="true" focusable="false"><rect x="6" y="6" width="68" height="68" rx="20" fill="#E85F45"/><rect x="33" y="13" width="14" height="7" rx="2.5" fill="#fff"/><rect x="22" y="20" width="36" height="47" rx="11" fill="#fff"/><rect x="26" y="36" width="28" height="27" rx="9" fill="#FFC247"/><path d="M47 25 L29 47 h10 l-4 15 18-22h-10z" fill="#E85F45"/></svg><span class="eb-word"><span class="eb-word-ink">Energy</span> <span class="eb-word-pop">Battery<svg class="eb-word-swoosh" viewBox="0 0 92 14" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M4 9C24 4 60 4 88 8" stroke="#FFB09F" stroke-width="7" stroke-linecap="round" fill="none"/></svg></span></span></a>
+<h1>Do Not Sell or Share My Personal Information</h1>
+<p class="muted">Last updated: 2026-05-28</p>
+
+<div class="entity">
+<strong>Short answer:</strong> Energy Battery does not sell or share personal information for cross-context behavioral advertising, and never has. There is nothing to opt out of, but this page exists so you can confirm that and so we comply with the California Consumer Privacy Act (CCPA), as amended by the California Privacy Rights Act (CPRA), and similar US state laws.
+</div>
+
+<h2>We don't sell or share your data</h2>
+<p>Energy Battery does not sell, rent, lease, or otherwise transfer personal information to third parties in exchange for money or other valuable consideration. Energy Battery does not share personal information with third parties for cross-context behavioral advertising. This has been true since the Service launched and we have no plans to change it.</p>
+
+<h2>What that means in practice</h2>
+<ul>
+  <li>We do not run advertising on the Service.</li>
+  <li>We do not install third-party advertising pixels or trackers.</li>
+  <li>We do not enrich third-party advertising profiles with your email, your check-ins, or any other data you submit.</li>
+  <li>We do not participate in any data broker exchange.</li>
+</ul>
+
+<h2>What we do share with vendors (and why)</h2>
+<p>The Privacy Policy lists every vendor that processes data on our behalf, what they receive, and why. None of these vendors are paid to receive your data; we pay them to provide infrastructure (hosting, email delivery, and any optional notification webhooks) that we use to run the Service for you. See the <a href="/legal/privacy">Privacy Policy</a> for the full list.</p>
+
+<h2>If you still want to submit a request</h2>
+<p>To exercise your right under CCPA/CPRA (or any state-equivalent law) to confirm your account is excluded from any current or future sale or sharing, email <a href="mailto:privacy@example.com">privacy@example.com</a> from the email address on your Energy Battery account. We will respond within 45 days.</p>
+
+<h2>Contact</h2>
+<p>
+YOUR COMPANY NAME<br>
+YOUR BUSINESS ADDRESS<br>
+USA<br>
+<a href="mailto:privacy@example.com">privacy@example.com</a>
+</p>
+
+<nav class="muted" style="margin-top:2rem;border-top:1px solid rgba(255,127,102,.18);padding-top:1rem">
+<a href="/">&larr; Energy Battery home</a> &middot;
+<a href="/legal/privacy">Privacy</a> &middot;
+<a href="/legal/terms">Terms</a> &middot;
+<a href="/legal/accessibility">Accessibility</a> &middot;
+<a href="https://github.com/jensoltys/energybattery" target="_blank" rel="noopener noreferrer">Source code</a> &middot;
+<a href="mailto:support@example.com">Contact: support@example.com</a>
+<div style="margin-top:.5rem">&copy; <span data-year>2026</span> YOUR COMPANY NAME &middot; YOUR BUSINESS ADDRESS</div>
+</nav>
+
+</main>
+</body>
+</html>

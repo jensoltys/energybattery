@@ -1,0 +1,128 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-only | Copyright (C) 2026 the Energy Battery authors. See LICENSE. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Accessibility Statement &middot; Energy Battery</title>
+<meta name="description" content="Energy Battery accessibility commitment, WCAG 2.1 AA conformance, and how to report a barrier. Operated by YOUR COMPANY NAME."/>
+<meta name="robots" content="index,follow"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%23E85F45'/><rect x='26' y='6' width='12' height='6' rx='2' fill='%23fff'/><rect x='16' y='11' width='32' height='42' rx='10' fill='%23fff'/><rect x='20' y='25' width='24' height='24' rx='8' fill='%23FFC247'/><path d='M38 15 L22 35 h9 l-3.5 13 16-20h-9z' fill='%23E85F45'/></svg>"/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1A1C;
+  --bg2:#16262A;
+  --amber:#FF7F66;
+  --amber-d:#E85F45;
+  /* WCAG AA text-safe amber (>=4.5:1 on the cream bg) — use for text/links, not fills */
+  --amber-t:#FF7F66;
+  --orange:#FFB09F;
+  --volt:#FFC247;
+  --text:#EEF5F3;
+  --muted:#9BB3AE;
+  --card:rgba(28,48,53,.65);
+  --card-border:rgba(28,48,53,.8);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+:focus-visible{outline:3px solid var(--amber-d);outline-offset:2px;border-radius:4px}
+html,body{overflow-x:hidden}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 1rem}
+.wrap{max-width:780px;margin:0 auto;background:var(--card);border:1px solid var(--card-border);border-radius:18px;padding:2rem 1.75rem;backdrop-filter:blur(20px);box-shadow:0 8px 60px rgba(255,127,102,.08),0 2px 8px rgba(0,0,0,.03)}
+h1{font-family:var(--font-head);font-size:2rem;background:linear-gradient(135deg,var(--amber) 0%,var(--orange) 50%,var(--volt) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.25rem;line-height:1.3;padding-bottom:4px}
+h2{font-family:var(--font-head);font-size:1.15rem;color:var(--amber-t);margin:1.6rem 0 .5rem}
+p,li{font-size:.95rem;line-height:1.7;color:var(--text);margin-bottom:.6rem}
+ul{margin:0 0 .8rem 1.25rem}
+a{color:var(--amber-t);text-decoration:underline}
+a:hover{color:#FFC247}
+.muted{color:var(--muted);font-size:.85rem}
+.entity{background:rgba(255,127,102,.08);border:1px solid rgba(255,127,102,.18);border-radius:12px;padding:1rem 1.25rem;margin:1rem 0;font-size:.9rem}
+.back{display:inline-block;margin-bottom:1.25rem;color:var(--muted);font-size:.85rem;padding:11px 6px;margin:0 -6px 1rem}
+/* Offsetting negative margin grows the tap target to >=40px without moving the layout */
+nav.muted a{display:inline-block;padding:12px 6px;margin:0 -6px}
+code{background:rgba(255,127,102,.08);padding:1px 5px;border-radius:4px;font-size:.85em}
+/* Brand lockup — hand-synced copy of the geometry in public/index.html.
+   Hexes hardcoded on purpose so the mark renders identically everywhere.
+   Other copies: index.html, og-preview.html, the favicon data URIs. */
+.eb-brand{display:inline-flex;align-items:center;gap:8px;text-decoration:none;padding:8px 6px;margin:-8px -6px 1.1rem}
+.eb-brand svg{display:block;flex:none}
+.eb-brand:hover{text-decoration:none}
+.eb-word{font-family:var(--font-head);font-weight:700;font-size:19px;letter-spacing:.2px;white-space:nowrap;line-height:1}
+.eb-word-ink{color:var(--text)}
+.eb-word-pop{position:relative;color:var(--amber-t)}
+.eb-word-swoosh{position:absolute;left:0;right:0;width:100%;height:.4em;bottom:-.28em;overflow:visible}
+:root{--font-head:'Bricolage Grotesque','Avenir Next',system-ui,sans-serif;--font-body:'Figtree','Avenir Next',system-ui,sans-serif;--on-primary:#2B0C05}button,input,select,textarea{font-family:inherit}</style>
+</head>
+<body>
+<main class="wrap">
+<a class="eb-brand" href="/" aria-label="Energy Battery home"><svg width="30" height="30" viewBox="0 0 80 80" aria-hidden="true" focusable="false"><rect x="6" y="6" width="68" height="68" rx="20" fill="#E85F45"/><rect x="33" y="13" width="14" height="7" rx="2.5" fill="#fff"/><rect x="22" y="20" width="36" height="47" rx="11" fill="#fff"/><rect x="26" y="36" width="28" height="27" rx="9" fill="#FFC247"/><path d="M47 25 L29 47 h10 l-4 15 18-22h-10z" fill="#E85F45"/></svg><span class="eb-word"><span class="eb-word-ink">Energy</span> <span class="eb-word-pop">Battery<svg class="eb-word-swoosh" viewBox="0 0 92 14" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M4 9C24 4 60 4 88 8" stroke="#FFB09F" stroke-width="7" stroke-linecap="round" fill="none"/></svg></span></span></a>
+<h1>Accessibility Statement</h1>
+<p class="muted">Last updated: May 29, 2026</p>
+
+<p>Energy Battery is built and operated by <strong>YOUR COMPANY NAME</strong>. We believe an energy tracker should work for everyone, including people who use screen readers, get around by keyboard, rely on high-contrast modes, or otherwise depend on assistive technology. This statement explains where we stand, where we're working, and how to tell us about something we missed.</p>
+
+<h2>Our standard</h2>
+<p>We aim for <strong>Web Content Accessibility Guidelines (WCAG) 2.1 Level AA</strong> conformance across Energy Battery. WCAG 2.1 AA is the level cited in most US, EU, and UK accessibility laws and the level courts use to evaluate website accessibility claims.</p>
+
+<h2>What this means in practice</h2>
+<ul>
+  <li><strong>Keyboard navigation:</strong> every interactive element (links, buttons, the energy slider, form fields) is reachable and operable using only a keyboard. Focus is always visible.</li>
+  <li><strong>Color contrast:</strong> body text meets a minimum 4.5:1 contrast ratio against its background. Large text and interactive controls meet at least 3:1.</li>
+  <li><strong>Form labels:</strong> every input has a label associated with it programmatically, so screen readers announce the right field.</li>
+  <li><strong>Semantic structure:</strong> headings are in order, landmarks are used (<code>&lt;main&gt;</code>, <code>&lt;footer&gt;</code>, <code>&lt;nav&gt;</code>), and page regions are identifiable.</li>
+  <li><strong>Alt text:</strong> meaningful images carry descriptive <code>alt</code> attributes; decorative images use empty <code>alt=""</code> so screen readers skip them.</li>
+  <li><strong>No timed traps:</strong> there are no session timeouts that boot users without warning, and no modal dialogs that capture focus without an escape.</li>
+  <li><strong>Resize and zoom:</strong> the layout reflows cleanly up to 200% zoom without horizontal scrolling on mobile.</li>
+  <li><strong>Color is not the only signal:</strong> links are underlined, errors include text (not just red borders), and required fields are labeled.</li>
+</ul>
+
+<h2>What we use to verify it</h2>
+<ul>
+  <li>Automated checks with <a href="https://github.com/dequelabs/axe-core" target="_blank" rel="noopener noreferrer">axe-core</a> and Lighthouse on the public pages. (EDIT THIS LINE to say how often you run them.)</li>
+  <li>Manual keyboard-only navigation testing on signup, login, password reset, account, and the check-in flow.</li>
+  <li>Spot-checks with macOS VoiceOver and NVDA on Windows for key flows.</li>
+</ul>
+
+<h2>Known limitations</h2>
+<p>We try to be transparent about gaps we know exist:</p>
+<ul>
+  <li><strong>Spark animations:</strong> Spark (our battery mascot) animates with charging bolts and energy level changes. They respect <code>prefers-reduced-motion</code> where supported, but if a specific animation creates a barrier for you, please tell us.</li>
+  <li><strong>Color-coded energy levels:</strong> energy is shown both by color (red/amber/green) AND by a numeric value (1-10), so users with color-blindness can still read the level.</li>
+</ul>
+
+<h2>Tell us if something is broken</h2>
+<p>If you hit a barrier (anything that prevents you from completing a task on Energy Battery), please tell us. We treat accessibility reports the same way we treat security reports: as a priority, with a real human reply.</p>
+
+<p><strong>Email:</strong> <a href="mailto:support@example.com">support@example.com</a><br>
+<strong>Subject line:</strong> "Accessibility barrier: Energy Battery"<br>
+<strong>What to include (whatever you have):</strong> the URL, the device + assistive technology you're using, what you were trying to do, and what happened.</p>
+
+<p>We'll acknowledge within 2 business days and propose a fix or workaround within 10 business days.</p>
+
+<h2>Formal complaints</h2>
+<p>If we have not resolved your concern, you may file a complaint with:</p>
+<ul>
+  <li><strong>US:</strong> the Department of Justice Civil Rights Division at <a href="https://civilrights.justice.gov" target="_blank" rel="noopener noreferrer">civilrights.justice.gov</a>.</li>
+  <li><strong>EU residents:</strong> your national equality body or data protection authority; see <a href="https://www.edpb.europa.eu" target="_blank" rel="noopener noreferrer">edpb.europa.eu</a>.</li>
+  <li><strong>UK:</strong> the <a href="https://www.equalityhumanrights.com" target="_blank" rel="noopener noreferrer">Equality and Human Rights Commission</a>.</li>
+</ul>
+
+<h2>Contact</h2>
+<div class="entity">
+<strong>YOUR COMPANY NAME</strong><br>
+YOUR BUSINESS ADDRESS<br>
+United States<br>
+<a href="mailto:support@example.com">support@example.com</a>
+</div>
+
+<nav class="muted" style="margin-top:2rem;border-top:1px solid rgba(255,127,102,.18);padding-top:1rem">
+<a href="/">&larr; Energy Battery home</a> &middot;
+<a href="/legal/privacy">Privacy</a> &middot;
+<a href="/legal/terms">Terms</a> &middot;
+<a href="/legal/do-not-sell">Do Not Sell</a> &middot; <a href="https://github.com/jensoltys/energybattery" target="_blank" rel="noopener noreferrer">Source code</a> &middot;
+<a href="mailto:support@example.com">Contact: support@example.com</a>
+<div style="margin-top:.5rem">&copy; <span data-year>2026</span> YOUR COMPANY NAME &middot; YOUR BUSINESS ADDRESS</div>
+</nav>
+</main>
+</body>
+</html>

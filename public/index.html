@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: AGPL-3.0-only | Copyright (C) 2026 the Energy Battery authors. See LICENSE. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Energy Battery</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%23E85F45'/><rect x='26' y='6' width='12' height='6' rx='2' fill='%23fff'/><rect x='16' y='11' width='32' height='42' rx='10' fill='%23fff'/><rect x='20' y='25' width='24' height='24' rx='8' fill='%23FFC247'/><path d='M38 15 L22 35 h9 l-3.5 13 16-20h-9z' fill='%23E85F45'/></svg>"/>
+<meta name="theme-color" content="#0F1A1C"/>
+<meta name="description" content="Log your energy through the day and watch your battery fill. Free to track. Pro adds pattern insights and your full history."/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="/"/>
+<meta property="og:title" content="Energy Battery: Track your energy. Find your spark."/>
+<meta property="og:description" content="Log your energy through the day and watch your battery fill. Free to track. Pro adds pattern insights and your full history."/>
+<meta property="og:image" content="/og.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Energy Battery: Track your energy. Find your spark."/>
+<meta name="twitter:description" content="Log your energy through the day and watch your battery fill. Free to track. Pro adds pattern insights and your full history."/>
+<meta name="twitter:image" content="/og.png"/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1A1C;--bg2:#16262A;
+  --amber:#FF7F66;--amber-d:#E85F45;--amber-glow:rgba(255,127,102,0.35);
+  --orange:#FFB09F;--orange-glow:rgba(255,127,102,0.3);
+  --volt:#FFC247;
+  --green:#6EE7B7;--green-glow:rgba(110,231,183,0.3);
+  --red:#FF5A6E;--purple:#C3A6FF;--cyan:#5CD6F0;
+  --text:#EEF5F3;--muted:#9BB3AE;
+  --card:rgba(28,48,53,0.78);--card-border:rgba(255,127,102,0.16);
+  --blood:#FF5A6E;
+  /* WCAG AA text-safe variants for accent colors on the light cream bg (>=4.5:1) */
+  --amber-t:#FF7F66;--green-t:#6EE7B7;--red-t:#FF5A6E;--pro-t:#FFC247;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+/* ---------------------------------------------------------------------------
+   BRAND LOCKUP — battery-tile mark + two-tone "Energy Battery" wordmark.
+   Mark hexes are hardcoded (never var()) so it renders identically anywhere it
+   is dropped. Hand-synced copies of this geometry live in:
+     public/legal/privacy.html, terms.html, accessibility.html, do-not-sell.html
+     public/og-preview.html
+     the favicon data URI in the <head> of this file and every legal page
+   Keep all of them identical.
+--------------------------------------------------------------------------- */
+.eb-doc-title{margin:0}
+.eb-brand{display:inline-flex;align-items:center;gap:9px;text-decoration:none;padding:6px;margin:-6px}
+.eb-brand svg{display:block;flex:none}
+.eb-word{font-family:var(--font-head);font-weight:700;font-size:21px;letter-spacing:.2px;white-space:nowrap;line-height:1}
+.eb-word-ink{color:var(--text)}
+.eb-word-pop{position:relative;color:var(--amber-t)}
+/* The swoosh stretches to the word via preserveAspectRatio="none"; smaller
+   placements bump stroke-width so it reads as an underline, not a hairline. */
+.eb-word-swoosh{position:absolute;left:0;right:0;width:100%;height:.4em;bottom:-.28em;overflow:visible}
+/* Auth screen: the largest placement */
+.auth-logo .eb-word{font-size:clamp(23px,6vw,30px)}
+/* App header: centered, medium */
+.app-header .eb-brand{justify-content:center}
+.app-header .eb-word{font-size:clamp(20px,4.5vw,27px)}
+/* Visually hidden but read by screen readers (labels for graphical controls) */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+/* Keyboard focus indicators — WCAG 2.1 AA (2.4.7 Focus Visible) */
+:focus-visible{outline:3px solid var(--amber-d);outline-offset:2px;border-radius:4px}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;overflow-x:hidden;width:100%;max-width:100vw}
+html{overflow-x:hidden}
+/* Grain overlay */
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.1}
+/* Animated mesh gradient background */
+.bg-mesh{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;mix-blend-mode:multiply}
+.blob1{width:min(600px,90vw);height:min(600px,90vw);background:radial-gradient(circle,rgba(255,127,102,.12),rgba(255,127,102,.06) 60%,transparent 80%);top:-15%;left:-15%;animation:meshFloat1 20s ease-in-out infinite}
+.blob2{width:min(500px,80vw);height:min(500px,80vw);background:radial-gradient(circle,rgba(110,231,183,.08),rgba(92,214,240,.04) 60%,transparent 80%);bottom:-10%;right:-10%;animation:meshFloat2 25s ease-in-out infinite}
+.blob3{width:min(450px,70vw);height:min(450px,70vw);background:radial-gradient(circle,rgba(255,127,102,.07),rgba(255,127,102,.03) 60%,transparent 80%);top:35%;left:30%;animation:meshFloat3 22s ease-in-out infinite}
+.blob4{width:min(350px,60vw);height:min(350px,60vw);background:radial-gradient(circle,rgba(195,166,255,.06),transparent 70%);top:10%;right:20%;animation:meshFloat4 18s ease-in-out infinite}
+@keyframes meshFloat1{0%,100%{transform:translate(0,0) scale(1)}25%{transform:translate(8%,5%) scale(1.05)}50%{transform:translate(3%,10%) scale(.97)}75%{transform:translate(-5%,3%) scale(1.03)}}
+@keyframes meshFloat2{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(-6%,-8%) scale(1.06)}66%{transform:translate(4%,-3%) scale(.95)}}
+@keyframes meshFloat3{0%,100%{transform:translate(0,0) scale(1)}25%{transform:translate(10%,-6%) scale(1.04)}50%{transform:translate(-5%,8%) scale(.98)}75%{transform:translate(3%,-4%) scale(1.02)}}
+@keyframes meshFloat4{0%,100%{transform:translate(0,0)}50%{transform:translate(-8%,6%)}}
+
+/* AUTH */
+/* Boot screen: held up while the session cookie is checked or a hub token is
+   exchanged, so the logged-out card never paints over a sign-in on its way in. */
+.boot-screen{position:fixed;inset:0;z-index:101;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;text-align:center;background:var(--bg)}
+.boot-dot{width:12px;height:12px;border-radius:50%;background:var(--amber);animation:bootPulse 1.1s ease-in-out infinite}
+@keyframes bootPulse{0%,100%{transform:scale(.65);opacity:.4}50%{transform:scale(1);opacity:1}}
+.boot-msg{margin:0;font-size:15px;color:var(--muted);min-height:1.3em}
+/* If JavaScript never arrives, this overlay must not trap the reader on a spinner
+   forever. It gives up after 10s and lets the login screen through. With JS the
+   boot gate hides it long before that, so this only fires when scripting is dead. */
+.boot-screen{animation:bootGiveUp 1s 10s forwards}
+@keyframes bootGiveUp{to{opacity:0;visibility:hidden}}
+@media (prefers-reduced-motion:reduce){.boot-dot{animation:none;opacity:.8}}
+.auth-screen{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;background:var(--bg)}
+.auth-split{width:100%;max-width:420px;position:relative;z-index:1}
+.auth-promo{display:none}
+/* Compact value prop above the auth card on mobile (full promo panel is desktop-only) */
+.auth-mobile-pitch{display:none;text-align:center;font-size:.85rem;color:var(--muted);line-height:1.6;margin:0 8px 14px}
+@media(max-width:660px){.auth-mobile-pitch{display:block}}
+.auth-bug-mobile{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:12px}
+.auth-bug-bubble{background:rgba(255,127,102,.1);border:1px solid rgba(255,127,102,.25);border-radius:16px;padding:8px 16px;font-size:.82rem;color:var(--muted);font-style:italic}
+.auth-box{background:linear-gradient(135deg,rgba(28,48,53,.9),rgba(28,48,53,.7));border:1px solid rgba(28,48,53,.7);border-radius:24px;padding:36px 30px;width:100%;box-shadow:0 8px 60px rgba(255,127,102,.08),0 2px 8px rgba(0,0,0,.03);backdrop-filter:blur(20px) saturate(1.3)}
+.auth-logo{text-align:center;margin-bottom:28px}
+.auth-logo .t1{font-family:var(--font-head);font-size:1.8rem;background:linear-gradient(135deg,var(--amber) 0%,var(--orange) 50%,var(--volt) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:block;line-height:1.3;padding-bottom:4px;margin-top:10px}
+.auth-logo .t2{font-size:.82rem;color:var(--muted);margin-top:8px;display:block;line-height:1.6}
+.auth-tabs{display:flex;background:rgba(255,127,102,.05);border-radius:12px;margin-bottom:20px;border:1px solid rgba(255,127,102,.1);padding:3px;gap:3px}
+.auth-tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:var(--font-body);transition:.25s;border-radius:10px}
+.auth-tab.active{color:var(--on-primary);background:linear-gradient(135deg,var(--amber),var(--amber-d));box-shadow:0 4px 16px var(--amber-glow)}
+.auth-fg{margin-bottom:14px}
+.auth-label{font-size:10px;color:var(--muted);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.8px;font-weight:700}
+.auth-input{width:100%;background:rgba(28,48,53,.7);border:1.5px solid rgba(255,127,102,.15);border-radius:10px;padding:11px 14px;font-size:14px;color:var(--text);font-family:var(--font-body);outline:none;transition:all .2s}
+.auth-input:focus{border-color:rgba(255,127,102,.5);box-shadow:0 0 0 3px rgba(255,127,102,.1)}
+.auth-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--amber),var(--amber-d));color:var(--on-primary);border:none;border-radius:10px;font-family:var(--font-head);font-size:1rem;cursor:pointer;transition:all .2s;margin-top:6px}
+.auth-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px var(--amber-glow)}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.auth-err{background:rgba(255,90,110,.08);border:1px solid rgba(255,90,110,.2);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--red-t);margin-bottom:14px;display:none}
+.auth-suc{background:rgba(110,231,183,.08);border:1px solid rgba(110,231,183,.2);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--green-t);margin-bottom:14px;display:none}
+.auth-nl{display:flex;align-items:flex-start;gap:8px;margin:16px 0 6px;font-size:11px;color:var(--muted);line-height:1.5}
+.auth-nl input{margin-top:3px;accent-color:var(--amber)}
+.auth-forgot{font-size:11px;color:var(--muted);cursor:pointer;border:none;background:none;font-family:var(--font-body);margin-top:8px;transition:.15s}
+.auth-forgot:hover{color:var(--amber-t)}
+.auth-privacy{font-size:10px;color:var(--muted);text-align:center;margin-top:16px}
+/* Offsetting negative margin grows the tap target to >=40px without moving the layout */
+.auth-privacy a{color:var(--muted);cursor:pointer;transition:.15s;display:inline-block;padding:13px 6px;margin:0 -6px}
+.auth-privacy a:hover{color:var(--amber-t)}
+.reset-screen{position:fixed;inset:0;z-index:101;display:none;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
+
+/* APP GRID */
+.app{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:2.5rem 1.5rem 4rem;display:grid;grid-template-columns:clamp(220px,30%,300px) minmax(0,1fr);grid-template-rows:auto 1fr;gap:1.5rem 2.5rem;align-items:start}
+.app-header{grid-column:1/-1;text-align:center;padding-bottom:.5rem}
+.app-subtitle{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.2em;margin-top:.3rem}
+.app-header-top{display:flex;justify-content:flex-end;margin-bottom:.5rem}
+.app-header-actions{display:flex;gap:8px;align-items:center}
+.hdr-link{font-size:.72rem;color:var(--muted);cursor:pointer;border:none;background:none;font-family:var(--font-body);transition:.15s;min-height:44px;display:inline-flex;align-items:center;padding:0 10px}
+.hdr-link:hover{color:var(--amber-t)}
+
+/* WATT PANEL */
+.watt-panel{display:flex;flex-direction:column;align-items:center;gap:1.25rem;position:sticky;top:2rem;height:fit-content}
+.speech-bubble{background:linear-gradient(135deg,rgba(28,48,53,.65),rgba(28,48,53,.4));border:1px solid rgba(28,48,53,.6);border-radius:18px;padding:1rem 1.25rem;font-family:var(--font-head);font-size:1rem;color:var(--text);text-align:center;line-height:1.5;width:100%;min-height:60px;display:flex;align-items:center;justify-content:center;position:relative;transition:all .3s;backdrop-filter:blur(16px) saturate(1.2);box-shadow:0 4px 16px rgba(0,0,0,.03),inset 0 1px 1px rgba(28,48,53,.5)}
+.speech-bubble::after{content:'';position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--card-border)}
+.speech-bubble::before{content:'';position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:rgba(28,48,53,.55);z-index:1}
+
+/* SPARK CHARACTER — Advanced CSS+SVG Hybrid Battery Blob */
+.watt-wrap{cursor:pointer;width:140px;height:210px;position:relative;flex-shrink:0;filter:drop-shadow(0 6px 20px rgba(255,127,102,.25)) drop-shadow(0 12px 40px rgba(255,127,102,.1));transition:filter .3s}
+.watt-wrap:hover{filter:drop-shadow(0 0 20px rgba(255,127,102,.45)) drop-shadow(0 0 50px rgba(255,127,102,.15))}
+/* Inner 140x210 coordinate space for Amp's absolutely positioned parts.
+   Mobile scales THIS layer, so the state animations on .watt-wrap (which
+   also use transform) never fight the compact scale. */
+.watt-inner{position:relative;width:140px;height:210px}
+
+
+.backup-cell{display:flex;gap:6px;align-items:center;margin-top:8px;font-size:.78rem;font-weight:600;color:var(--green-t)}
+.backup-cell[hidden]{display:none}
+.backup-cell.used{color:var(--muted)}
+.glow-noticed{border-left:3px solid var(--amber);text-align:left;padding:.9rem 1rem;margin:.75rem 0}
+.gn-lbl{font-family:var(--font-head);font-weight:700;font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;color:var(--amber-t);margin-bottom:.3rem}
+.gn-line{font-size:.95rem;line-height:1.5}
+.gn-foot{font-size:.8rem;color:var(--muted);margin-top:.35rem}
+/* GLOW THE FIREFLY: drawn by glowSvg() in app.js (source: scripts/glow.js) */
+#glowArt svg{display:block;overflow:visible}
+.glow-eyes{transition:transform .09s ease-in}
+.glow-eyes.blink{transform:scaleY(.12)}
+.glow-wings{animation:glowFlutter 1.6s ease-in-out infinite;transform-origin:70px 90px}
+@keyframes glowFlutter{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.9)}}
+.glow-halo{animation:glowBreathe 2.6s ease-in-out infinite}
+@keyframes glowBreathe{0%,100%{opacity:.75}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.glow-wings,.glow-halo{animation:none}}
+/* Animation states */
+@keyframes idleBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes pleasedBounce{0%,100%{transform:translateY(0) scale(1)}30%{transform:translateY(-12px) scale(1.04) rotate(-2deg)}60%{transform:translateY(-6px) scale(1.01) rotate(2deg)}}
+@keyframes celebShake{0%{transform:rotate(0) translateY(0)}15%{transform:rotate(-5deg) translateY(-14px)}30%{transform:rotate(5deg) translateY(-8px) scale(1.04)}50%{transform:rotate(-6deg) translateY(-18px)}65%{transform:rotate(6deg) translateY(-10px) scale(1.06)}80%{transform:rotate(-3deg) translateY(-12px)}100%{transform:rotate(0) translateY(0)}}
+.state-idle{animation:idleBob 3s ease-in-out infinite}
+.state-pleased{animation:pleasedBounce .5s ease-in-out 2}
+.state-celebrating{animation:celebShake .35s ease-in-out infinite}
+
+/* Streak bar */
+.streak-bar-wrap{width:100%}
+.bar-label{display:flex;justify-content:space-between;font-family:var(--font-head);font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem}
+.streak-bar{background:rgba(255,127,102,.08);border-radius:100px;height:10px;overflow:hidden}
+.streak-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--amber),var(--volt),var(--green));box-shadow:0 0 12px var(--amber-glow);transition:width .5s cubic-bezier(.34,1.56,.64,1)}
+
+/* MAIN */
+.main-content{min-width:0}
+.tabs{display:flex;background:linear-gradient(135deg,rgba(28,48,53,.6),rgba(28,48,53,.35));border-radius:14px;margin-bottom:1rem;border:1px solid rgba(28,48,53,.6);padding:4px;gap:2px;backdrop-filter:blur(16px) saturate(1.2);box-shadow:0 4px 16px rgba(0,0,0,.03),inset 0 1px 1px rgba(28,48,53,.5)}
+.tab{flex:1;padding:10px 4px;font-size:.78rem;font-weight:700;color:var(--muted);cursor:pointer;border:none;background:transparent;transition:all .2s;font-family:var(--font-body);border-radius:10px;position:relative}
+.tab.active{color:var(--on-primary);background:linear-gradient(135deg,rgba(255,127,102,.85),rgba(255,127,102,.7));box-shadow:0 2px 8px var(--amber-glow)}
+.tab:hover:not(.active){color:var(--text);background:rgba(255,127,102,.06)}
+.tab[data-tooltip]::after{content:attr(data-tooltip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(4px);background:rgba(28,48,53,.95);border:1px solid var(--card-border);color:var(--muted);font-size:10px;font-weight:400;white-space:nowrap;padding:5px 10px;border-radius:8px;opacity:0;pointer-events:none;transition:all .2s;box-shadow:0 4px 16px rgba(0,0,0,.08);z-index:10}
+.tab[data-tooltip]:hover::after{opacity:1;transform:translateX(-50%) translateY(0)}
+.panel{display:none}.panel.active{display:block}
+
+/* CARDS — Advanced glassmorphism */
+.card{background:linear-gradient(135deg,rgba(28,48,53,.6),rgba(28,48,53,.35));border:1px solid rgba(28,48,53,.65);border-radius:16px;padding:18px 20px;margin-bottom:12px;backdrop-filter:blur(16px) saturate(1.2);box-shadow:0 4px 16px rgba(0,0,0,.03),0 1px 3px rgba(0,0,0,.02),inset 0 1px 1px rgba(28,48,53,.5)}
+.sec-lbl{font-family:var(--font-head);font-size:.82rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+
+/* BATTERY VISUAL — Advanced */
+.battery-wrap{display:flex;justify-content:center;padding:20px 0;margin-bottom:12px}
+.battery-outer{width:140px;height:220px;border:4px solid;border-image:linear-gradient(180deg,#9BB3AE,#9BB3AE,#9BB3AE) 1;border-radius:16px;position:relative;
+  background:linear-gradient(180deg,rgba(28,48,53,.35),rgba(28,48,53,.15));
+  overflow:hidden;backdrop-filter:blur(8px);
+  box-shadow:inset 0 2px 8px rgba(28,48,53,.1),0 8px 32px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.05)}
+/* Fix border-radius with border-image */
+.battery-outer{border:4px solid #9BB3AE;border-radius:16px}
+.battery-terminal{width:50px;height:16px;
+  background:linear-gradient(180deg,#9BB3AE,#9BB3AE,#9BB3AE);
+  border-radius:6px 6px 0 0;position:absolute;top:-16px;left:50%;transform:translateX(-50%);
+  box-shadow:inset 0 1px 2px rgba(28,48,53,.2),0 2px 6px rgba(0,0,0,.1)}
+.battery-fill{position:absolute;bottom:0;left:0;right:0;transition:height .8s cubic-bezier(.34,1.56,.64,1);border-radius:0 0 12px 12px}
+/* Animated liquid shimmer on fill */
+.battery-fill::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(28,48,53,.25) 0%,transparent 20%,transparent 80%,rgba(0,0,0,.08) 100%);
+  pointer-events:none}
+.battery-fill::after{content:'';position:absolute;top:0;left:-100%;width:200%;height:100%;
+  background:linear-gradient(90deg,transparent 0%,rgba(28,48,53,.15) 50%,transparent 100%);
+  animation:liquidShine 3s ease-in-out infinite;pointer-events:none}
+@keyframes liquidShine{0%{transform:translateX(-30%)}50%{transform:translateX(30%)}100%{transform:translateX(-30%)}}
+.battery-shimmer{position:absolute;inset:0;
+  background:linear-gradient(160deg,rgba(28,48,53,.2) 0%,transparent 30%),
+    linear-gradient(180deg,transparent 60%,rgba(0,0,0,.03) 100%);
+  border-radius:12px;pointer-events:none}
+.battery-icons{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:10px;gap:6px;pointer-events:none}
+.battery-icon{font-size:1.2rem;opacity:0;transition:opacity .5s,transform .5s;filter:drop-shadow(0 1px 4px rgba(0,0,0,.25));transform:scale(.8)}
+.battery-icon.visible{opacity:1;transform:scale(1)}
+.battery-pct{text-align:center;font-family:var(--font-head);font-size:1.1rem;color:var(--amber-t);margin-top:12px;
+  text-shadow:0 1px 8px rgba(255,127,102,.2)}
+.battery-label{text-align:center;font-family:var(--font-head);font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.battery-wrap.fully-charged .battery-outer{border-color:var(--volt);
+  box-shadow:0 0 30px rgba(255,194,71,.25),0 0 60px rgba(255,194,71,.1),inset 0 0 20px rgba(255,194,71,.05);
+  animation:batteryGlow 2.5s ease-in-out infinite}
+@keyframes batteryGlow{0%,100%{box-shadow:0 0 30px rgba(255,194,71,.25),0 0 60px rgba(255,194,71,.1)}50%{box-shadow:0 0 50px rgba(255,194,71,.4),0 0 80px rgba(255,194,71,.15)}}
+
+/* CHECK-IN CARDS */
+.ci-card{background:linear-gradient(135deg,rgba(28,48,53,.6),rgba(28,48,53,.35));border:1px solid rgba(28,48,53,.6);border-radius:14px;padding:14px 16px 14px 20px;margin-bottom:10px;position:relative;transition:all .25s;backdrop-filter:blur(16px) saturate(1.2);box-shadow:0 2px 8px rgba(0,0,0,.02),inset 0 1px 1px rgba(28,48,53,.5)}
+.ci-card:hover{border-color:rgba(255,127,102,.2);transform:translateX(3px);box-shadow:0 4px 16px rgba(255,127,102,.06)}
+.ci-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:14px 0 0 14px}
+.ci-energy{font-family:var(--font-head);font-size:1.1rem;display:inline-block;padding:2px 10px;border-radius:8px;color:var(--on-primary)}
+.ci-time{font-size:.72rem;color:var(--muted);margin-left:8px;text-transform:uppercase;font-weight:700;letter-spacing:.5px}
+.ci-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.ci-tag{font-size:.65rem;padding:2px 8px;border-radius:10px;background:rgba(255,127,102,.08);color:var(--amber-d);font-weight:600}
+.ci-notes{font-size:.75rem;color:var(--muted);margin-top:5px;font-style:italic}
+.ci-date{font-size:.7rem;color:var(--muted);margin-top:4px}
+.ci-actions{display:flex;gap:8px;margin-top:8px}
+
+/* FORMS */
+.fg{margin-bottom:12px}
+.flbl{font-size:10px;color:var(--muted);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.8px;font-weight:700}
+.finput,.fsel,.ftextarea{width:100%;background:rgba(28,48,53,.7);border:1.5px solid rgba(255,127,102,.12);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--text);font-family:var(--font-body);outline:none;transition:all .2s}
+.ftextarea{resize:vertical;min-height:60px}
+.finput:focus,.fsel:focus,.ftextarea:focus{border-color:rgba(255,127,102,.5);box-shadow:0 0 0 3px rgba(255,127,102,.1)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end}
+.btn{padding:12px;border:none;border-radius:10px;font-family:var(--font-head);font-size:.9rem;cursor:pointer;transition:all .2s;display:block;width:100%;text-align:center}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-amber{background:linear-gradient(135deg,var(--amber) 0%,var(--amber-d) 100%);color:var(--on-primary);box-shadow:0 4px 16px var(--amber-glow),inset 0 1px 1px rgba(28,48,53,.2);position:relative;overflow:hidden}
+.btn-amber::before{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(28,48,53,.15),transparent);pointer-events:none;border-radius:10px 10px 0 0}
+.btn-amber:hover{box-shadow:0 6px 24px var(--amber-glow),0 2px 8px rgba(255,127,102,.2)}
+.btn-danger{background:rgba(255,90,110,.08);color:var(--red-t);border:1px solid rgba(255,90,110,.2)}
+.btn-sm{font-size:.75rem;padding:7px 14px;width:auto;display:inline-block}
+
+/* Energy slider */
+.energy-slider-wrap{display:flex;align-items:center;gap:12px;margin:8px 0 4px}
+.energy-slider{flex:1;-webkit-appearance:none;height:12px;border-radius:100px;background:linear-gradient(90deg,var(--red),var(--orange),var(--amber),var(--green),var(--cyan));outline:none;transition:opacity .2s;box-shadow:inset 0 2px 4px rgba(0,0,0,.1),0 1px 2px rgba(28,48,53,.5)}
+.energy-slider::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#fff,#16262A);border:3px solid var(--amber);box-shadow:0 2px 8px rgba(0,0,0,.15),0 0 0 3px rgba(255,127,102,.1),inset 0 1px 2px rgba(28,48,53,.8);cursor:pointer;transition:box-shadow .2s}
+.energy-slider::-webkit-slider-thumb:hover{box-shadow:0 2px 12px rgba(255,127,102,.3),0 0 0 5px rgba(255,127,102,.1)}
+.energy-val{font-family:var(--font-head);font-size:1.5rem;width:36px;text-align:center}
+/* Time toggle */
+.time-toggle{display:flex;gap:4px}
+.time-btn,.day-btn{flex:1;padding:8px;border:1.5px solid rgba(255,127,102,.12);border-radius:10px;background:rgba(28,48,53,.5);color:var(--muted);font-family:var(--font-body);font-size:.75rem;font-weight:700;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.5px}
+.time-btn.active,.day-btn.active{background:linear-gradient(135deg,var(--amber),var(--amber-d));color:var(--on-primary);border-color:transparent;box-shadow:0 2px 8px var(--amber-glow)}
+#ci-date{margin-top:6px}
+/* Recharge Menu — laid out as a printed menu: courses, dish names, leader dots,
+   and a price column. Deliberately no bars; the charts live in Pattern Insights. */
+.rm-card{background:linear-gradient(160deg,#1C3035,rgba(15,26,28,.85));border:1px solid rgba(255,127,102,.18);
+  border-radius:16px;padding:20px 18px 16px;margin-bottom:12px;position:relative;
+  box-shadow:0 4px 16px rgba(0,0,0,.04),inset 0 0 0 1px rgba(28,48,53,.6)}
+/* The inner hairline is what reads as "menu card" rather than "app card". */
+.rm-card::after{content:'';position:absolute;inset:6px;border:1px solid rgba(255,127,102,.13);border-radius:11px;pointer-events:none}
+.rm-head{text-align:center;margin-bottom:16px;position:relative;z-index:1}
+.rm-pro{display:inline-flex;align-items:center;gap:.2rem;font-size:.6rem;font-weight:800;color:var(--pro-t);
+  letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.rm-title{font-family:var(--font-head);font-size:clamp(1.02rem,4.6vw,1.32rem);letter-spacing:.09em;text-transform:uppercase;color:var(--text);line-height:1.15}
+.rm-flourish{display:flex;align-items:center;justify-content:center;gap:9px;margin:7px 0 6px}
+.rm-flourish::before,.rm-flourish::after{content:'';height:1px;width:42px;background:rgba(255,127,102,.28)}
+.rm-sub{font-size:.7rem;color:var(--muted);font-style:italic;line-height:1.5}
+.rm-course{margin-bottom:15px;position:relative;z-index:1}
+.rm-course:last-of-type{margin-bottom:8px}
+.rm-course-lbl{font-size:.62rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--amber-t);
+  text-align:center;margin-bottom:11px}
+.rm-dish{margin-bottom:12px}
+.rm-dish:last-child{margin-bottom:0}
+.rm-line{display:flex;align-items:baseline;gap:5px}
+.rm-name{font-family:var(--font-head);font-size:.92rem;color:var(--text);white-space:nowrap}
+.rm-dots{flex:1;border-bottom:1.5px dotted rgba(155,179,174,.4);transform:translateY(-3px);min-width:14px}
+.rm-price{font-family:var(--font-head);font-size:.92rem;color:var(--green-t);font-variant-numeric:tabular-nums}
+.rm-desc{font-size:.78rem;color:var(--text);font-style:italic;line-height:1.5;margin-top:2px;opacity:.85}
+.rm-note{font-size:.64rem;color:var(--muted);margin-top:2px}
+.rm-off{border-top:1px solid rgba(255,127,102,.14);padding-top:13px}
+.rm-off-note{font-size:.68rem;color:var(--muted);text-align:center;font-style:italic;margin-bottom:8px}
+.rm-off-list{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+.rm-off-item{font-size:.72rem;color:var(--text);font-style:italic;background:rgba(255,127,102,.09);
+  border:1px solid rgba(255,127,102,.2);border-radius:11px;padding:3px 9px;line-height:1.45}
+.rm-foot{font-size:.64rem;color:var(--muted);text-align:center;line-height:1.5;margin-top:12px;
+  border-top:1px solid rgba(255,127,102,.14);padding-top:10px;position:relative;z-index:1}
+.rm-foot-note{font-size:.64rem;color:var(--amber-t);text-align:center;font-weight:700;margin-top:5px;position:relative;z-index:1}
+.rm-empty{font-size:.78rem;color:var(--muted);line-height:1.6;text-align:center;position:relative;z-index:1}
+.rm-empty-meta{font-size:.72rem;color:var(--amber-t);font-weight:700;text-align:center;margin-top:8px;position:relative;z-index:1}
+/* Hand me one — the other half, and deliberately not menu-shaped. */
+.hmo-copy{font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:12px}
+.hmo-btn{width:100%}
+.hmo-link{display:block;width:100%;background:none;border:none;color:var(--amber-t);font-family:var(--font-body);
+  font-size:.75rem;font-weight:800;cursor:pointer;margin-top:10px;padding:.4rem;min-height:44px}
+.hmo-link:hover{color:var(--text)}
+/* Tag pills */
+.tag-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.tag-pill{padding:5px 12px;border-radius:20px;font-size:.72rem;font-weight:700;cursor:pointer;border:1.5px solid rgba(255,127,102,.12);background:linear-gradient(135deg,rgba(28,48,53,.6),rgba(28,48,53,.35));color:var(--muted);transition:all .25s;font-family:var(--font-body);backdrop-filter:blur(8px);box-shadow:0 1px 3px rgba(0,0,0,.02);position:relative}
+/* Invisible expanded hit area — pills stay visually compact but tap >=44px */
+.tag-pill::after{content:'';position:absolute;inset:-8px;border-radius:26px}
+.tag-pill.active{background:linear-gradient(135deg,var(--amber),var(--orange));color:var(--on-primary);border-color:transparent;box-shadow:0 3px 10px var(--amber-glow),inset 0 1px 1px rgba(28,48,53,.2)}
+.tag-pill:hover:not(.active){border-color:rgba(255,127,102,.25);color:var(--text);transform:translateY(-1px);box-shadow:0 2px 6px rgba(255,127,102,.06)}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.stat-card{background:linear-gradient(135deg,rgba(28,48,53,.6),rgba(28,48,53,.35));border:1px solid rgba(28,48,53,.6);border-radius:14px;padding:16px;text-align:center;transition:all .25s;backdrop-filter:blur(16px) saturate(1.2);box-shadow:0 4px 12px rgba(0,0,0,.03),inset 0 1px 1px rgba(28,48,53,.5)}
+.stat-card:hover{border-color:rgba(255,127,102,.25);transform:translateY(-3px);box-shadow:0 8px 24px rgba(255,127,102,.08),inset 0 1px 1px rgba(28,48,53,.5)}
+.stat-lbl{font-size:.65rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px;font-weight:700}
+.stat-val{font-family:var(--font-head);font-size:1.3rem;color:var(--text)}
+.stat-val.amber{background:linear-gradient(135deg,var(--amber),var(--volt));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.tier-card{background:var(--card);border:1px solid var(--card-border);border-radius:16px;padding:18px 20px;margin-bottom:12px;display:flex;align-items:center;gap:14px;backdrop-filter:blur(12px)}
+.tier-emoji{font-size:2rem}
+.tier-label{font-family:var(--font-head);font-size:1rem;color:var(--text)}
+.tier-sub{font-size:.8rem;color:var(--amber-t);margin-top:2px}
+.bar-chart-item{margin-bottom:8px}
+.bar-chart-label{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);margin-bottom:4px}
+.bar-chart-track{background:rgba(255,127,102,.06);border-radius:6px;height:6px;overflow:hidden}
+.bar-chart-fill{height:100%;border-radius:6px;transition:width .6s cubic-bezier(.34,1.2,.64,1)}
+
+/* NUDGE */
+.tip-card{background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:14px 16px;margin-top:12px;backdrop-filter:blur(12px)}
+.tip-text{font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:8px}
+.tip-cta{font-size:.8rem;color:var(--amber-t);text-decoration:none;font-weight:700;transition:.15s}
+.tip-cta:hover{text-decoration:underline}
+
+/* App help tip. Same shell as the promo card, green CTA instead of amber so the
+   two read as different things at a glance. No link, nothing to disclose. */
+.help-tip{border-color:rgba(110,231,183,.45);background:rgba(110,231,183,.10)}
+.help-tip .tip-cta{color:var(--green-t);background:none;border:none;padding:0;cursor:pointer;
+  font-family:var(--font-body);font-size:.8rem;font-weight:700}
+.help-tip .tip-cta:hover{text-decoration:underline}
+
+/* Inline hints: one muted line under the control it explains. */
+.eb-hint{font-size:.72rem;color:var(--muted);line-height:1.5;margin:.35rem 0 0;font-weight:600}
+.eb-hint:empty{display:none}
+
+/* ===== HELP PANEL ===== */
+.helpbtn{width:28px;height:28px;border-radius:999px;border:1.5px solid rgba(0,0,0,.18);
+  background:none;color:var(--muted);font-family:var(--font-head);font-size:.9rem;
+  cursor:pointer;line-height:1;flex-shrink:0;padding:0}
+.helpbtn:hover{color:var(--text);border-color:var(--amber-d)}
+.help-modal{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;padding:16px}
+.help-backdrop{position:absolute;inset:0;background:rgba(4,10,11,.45);backdrop-filter:blur(4px)}
+.help-card{position:relative;background:#1C3035;border:1px solid var(--card-border);border-radius:18px;
+  width:min(560px,100%);max-height:min(86vh,860px);display:flex;flex-direction:column;
+  box-shadow:0 24px 70px rgba(4,10,11,.35)}
+.help-x{position:absolute;top:8px;right:12px;background:none;border:none;color:var(--muted);
+  font-size:1.6rem;line-height:1;cursor:pointer;padding:4px 8px}
+.help-x:hover{color:var(--text)}
+.help-body{overflow-y:auto;padding:1.6rem 1.4rem .6rem;-webkit-overflow-scrolling:touch;text-align:left}
+.help-body h2{font-family:var(--font-head);font-size:1.3rem;margin:0 0 .2rem;color:var(--text)}
+.help-sub{font-size:.85rem;color:var(--muted);margin:0 0 .4rem}
+.help-body h3{font-family:var(--font-head);font-size:1rem;color:var(--amber-t);margin:1.3rem 0 .3rem}
+.help-body p,.help-body li{font-size:.88rem;line-height:1.6;color:var(--text)}
+.help-body p{margin:.45rem 0}
+.help-body ul,.help-body ol{padding-left:1.2rem;margin:.4rem 0}
+.help-body li{margin:.25rem 0}
+.help-body b{color:#EEF5F3}
+.help-body a{color:var(--amber-t)}
+.helprow{display:flex;gap:.6rem;align-items:baseline;margin:.4rem 0}
+.hchip{flex-shrink:0;display:inline-block;font-weight:800;font-size:.66rem;letter-spacing:.03em;
+  text-transform:uppercase;padding:.15rem .5rem;border-radius:999px;border:1px solid currentColor}
+.hchip.c-red{color:var(--red-t)} .hchip.c-amber{color:var(--amber-t)} .hchip.c-green{color:var(--green-t)}
+.help-foot{display:flex;gap:.6rem;justify-content:flex-end;padding:.9rem 1.4rem 1.2rem;
+  border-top:1px solid var(--card-border);flex-wrap:wrap}
+.help-done{background:linear-gradient(135deg,var(--amber),var(--orange));color:var(--on-primary);border:none;
+  border-radius:999px;padding:.55rem 1.3rem;font-family:var(--font-body);font-weight:800;
+  font-size:.88rem;cursor:pointer}
+.help-tour{background:none;color:var(--amber-t);border:1.5px solid rgba(255,127,102,.4);border-radius:999px;
+  padding:.55rem 1.2rem;font-family:var(--font-body);font-weight:800;font-size:.88rem;cursor:pointer}
+.help-tour:hover{border-color:var(--amber-d)}
+
+/* ===== GUIDED TOUR ===== */
+#tourring{position:fixed;border:3px solid var(--amber-d);border-radius:14px;
+  box-shadow:0 0 0 6px rgba(255,127,102,.22),0 0 30px rgba(255,127,102,.35);
+  pointer-events:none;z-index:99998;transition:all .25s ease}
+#tourbox{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;width:min(440px,calc(100vw - 24px));
+  background:#1C3035;border:1px solid var(--card-border);border-radius:16px;padding:14px 16px;
+  box-shadow:0 14px 44px rgba(4,10,11,.35);z-index:99999;text-align:left}
+#tourbox p{font-size:.88rem;line-height:1.5;margin:0 0 10px;color:var(--text)}
+.tourrow{display:flex;gap:.5rem;align-items:center;justify-content:flex-end}
+.tourcount{margin-right:auto;font-size:.72rem;color:var(--muted);font-weight:800}
+.tourbtn{background:linear-gradient(135deg,var(--amber),var(--orange));color:var(--on-primary);border:none;
+  border-radius:999px;padding:.45rem 1.1rem;font-family:var(--font-body);font-weight:800;
+  font-size:.85rem;cursor:pointer}
+.tourbtn.ghost{background:none;color:var(--muted);border:1.5px solid rgba(0,0,0,.18)}
+.tourbtn.ghost:hover{color:var(--text)}
+@media (prefers-reduced-motion: reduce){#tourring{transition:none}}
+.tip-disc{font-size:.7rem;color:var(--muted);margin-top:6px}
+
+/* TOAST */
+/* Load-failure banner: sits above the tabs, hidden until loadAppData() fails */
+.load-banner{display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:rgba(255,90,110,.08);border:1px solid rgba(255,90,110,.35);border-radius:14px;padding:12px 16px;margin-bottom:12px;font-size:.85rem;color:var(--text)}
+.load-retry-btn{padding:8px 16px;background:linear-gradient(135deg,var(--amber),var(--orange));color:var(--on-primary);border:none;border-radius:10px;font-family:var(--font-head);font-size:.9rem;cursor:pointer}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,rgba(28,48,53,.92),rgba(28,48,53,.8));backdrop-filter:blur(20px) saturate(1.3);color:var(--text);padding:12px 24px;border-radius:14px;font-size:13px;font-weight:600;z-index:200;animation:toastIn .35s cubic-bezier(.34,1.2,.64,1),toastOut .3s 2.2s forwards;border:1px solid rgba(28,48,53,.7);box-shadow:0 8px 32px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.03),inset 0 1px 1px rgba(28,48,53,.6)}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(16px) scale(.95)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+@keyframes toastOut{to{opacity:0;transform:translateX(-50%) translateY(16px) scale(.95)}}
+
+/* PARTICLES */
+.particle{position:fixed;pointer-events:none;z-index:998;border-radius:50%;animation:pfly var(--dur) cubic-bezier(.25,.46,.45,.94) forwards}
+@keyframes pfly{0%{transform:translate(0,0) scale(1) rotate(0);opacity:1}100%{transform:translate(var(--tx),var(--ty)) scale(0) rotate(var(--rot));opacity:0}}
+@keyframes screen-flash{0%{opacity:1}100%{opacity:0}}
+
+/* CELEBRATION */
+.celeb-overlay{position:fixed;inset:0;z-index:150;background:rgba(15,26,28,.88);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)}
+.celeb-box{background:rgba(28,48,53,.95);border:1px solid rgba(255,127,102,.2);border-radius:24px;padding:36px 28px;max-width:400px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(255,127,102,.15);animation:celebPop .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes celebPop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.celeb-title{font-family:var(--font-head);font-size:1.5rem;background:linear-gradient(135deg,var(--amber),var(--volt));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:12px 0 8px}
+.celeb-msg{font-size:.85rem;color:var(--muted);line-height:1.7;margin-bottom:20px}
+.celeb-close{background:linear-gradient(135deg,var(--amber),var(--amber-d));color:var(--on-primary);border:none;border-radius:10px;padding:12px 28px;font-family:var(--font-head);font-size:.9rem;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px var(--amber-glow)}
+.celeb-close:hover{transform:translateY(-2px);box-shadow:0 6px 24px var(--amber-glow)}
+#confetti-canvas{position:fixed;inset:0;z-index:160;pointer-events:none}
+
+/* POPUP */
+.dep-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.85);z-index:180;background:rgba(28,48,53,.96);border:1px solid var(--card-border);border-radius:20px;padding:28px 24px;text-align:center;max-width:340px;width:90%;box-shadow:0 16px 60px rgba(255,127,102,.15);backdrop-filter:blur(16px);animation:popIn .4s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes popIn{to{transform:translate(-50%,-50%) scale(1)}}
+.dep-popup .pop-amount{font-family:var(--font-head);font-size:1.6rem;background:linear-gradient(135deg,var(--amber),var(--volt));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:8px 0}
+.dep-popup .pop-msg{font-size:.85rem;color:var(--muted);line-height:1.6;margin-bottom:4px}
+.dep-popup .pop-close{background:linear-gradient(135deg,var(--amber),var(--amber-d));color:var(--on-primary);border:none;border-radius:10px;padding:10px 24px;font-family:var(--font-head);font-size:.85rem;cursor:pointer;transition:all .2s;margin-top:8px}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;z-index:170;background:rgba(15,26,28,.95);display:none;align-items:center;justify-content:center;padding:20px;overflow-y:auto;backdrop-filter:blur(8px)}
+.modal-box{background:rgba(28,48,53,.95);border:1px solid rgba(255,127,102,.15);border-radius:20px;padding:28px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 24px 80px rgba(255,127,102,.1)}
+.modal-box h2{font-family:var(--font-head);font-size:1.1rem;color:var(--text);margin-bottom:14px}
+.modal-box p{font-size:.8rem;color:var(--muted);line-height:1.7;margin-bottom:12px}
+.onboard-overlay{position:fixed;inset:0;z-index:140;background:rgba(15,26,28,.95);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)}
+.onboard-box{background:rgba(28,48,53,.95);border:1px solid rgba(255,127,102,.15);border-radius:24px;padding:36px 28px;max-width:400px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(255,127,102,.1)}
+
+.empty-state{text-align:center;padding:2.5rem 1rem;font-family:var(--font-head);color:var(--muted);font-size:.95rem;line-height:1.6}
+.empty-cta{display:inline-block;width:auto;margin-top:14px;padding:10px 22px}
+/* GUEST TRY: one sample check-in before any sign-up form (UX fixes 2026-11) */
+.guest-box[hidden],#auth-box[hidden]{display:none}
+.guest-head{font-family:var(--font-head);font-size:1.35rem;color:var(--text);text-align:center;line-height:1.3;margin:4px 0 6px}
+.guest-sub{font-size:.85rem;color:var(--muted);text-align:center;line-height:1.6;margin:0 0 18px}
+.guest-glow{display:flex;justify-content:center;margin-bottom:6px;line-height:0}
+.guest-lbl{font-size:10px;color:var(--muted);margin:16px 0 6px;display:block;text-transform:uppercase;letter-spacing:.8px;font-weight:700}
+.guest-result{display:flex;align-items:center;justify-content:center;gap:22px;margin:6px 0 14px}
+.guest-batt{display:flex;flex-direction:column;align-items:center}
+.guest-batt-body{position:relative;width:84px}
+.guest-result .battery-outer{width:84px;height:132px}
+.guest-result .battery-terminal{width:32px;height:10px;top:-10px}
+.guest-result .battery-pct{margin-top:8px}
+.guest-bubble{font-family:var(--font-head);font-size:.95rem;color:var(--text);text-align:center;line-height:1.5;background:rgba(255,127,102,.08);border:1px solid rgba(255,127,102,.2);border-radius:16px;padding:10px 14px;margin:0 0 14px}
+.guest-alt{display:block;margin:10px auto 0;font-size:12px}
+.guest-note{font-size:12px;color:var(--text);background:rgba(110,231,183,.1);border:1px solid rgba(110,231,183,.3);border-radius:10px;padding:9px 12px;margin-bottom:14px;line-height:1.5}
+.guest-note[hidden],.guest-alt[hidden],#track-cancel-btn[hidden],#tz-cancel-btn[hidden]{display:none}
+.track-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 16px}
+.track-opt{padding:12px 8px;border-radius:12px;border:1.5px solid rgba(255,127,102,.18);background:rgba(28,48,53,.5);color:var(--muted);font-weight:700;font-size:.9rem;cursor:pointer;transition:all .2s}
+.track-opt[aria-pressed="true"]{background:linear-gradient(135deg,var(--amber),var(--orange));color:var(--on-primary);border-color:transparent;box-shadow:0 3px 10px var(--amber-glow)}
+
+/* MOBILE */
+/* ===== Responsive shell: 900 / 1180 / 1560 (jen-web-design four-step) ===== */
+/* Base state first — a later same-specificity rule would beat the media query. */
+.data-col{display:none}
+@media(min-width:1024px){
+  .app{max-width:1180px}
+}
+@media(min-width:1440px){
+  /* Third column holds the read-only recap. Placement is explicit because
+     auto-placement cannot move a block from "below the content" to "beside
+     the content" at one breakpoint — which is also why .data-col has to be a
+     direct child of .app rather than living inside <main>. */
+  .app{max-width:1560px;grid-template-columns:280px minmax(0,600px) minmax(0,1fr)}
+  .app-header{grid-column:1/-1}
+  .watt-panel{grid-column:1;grid-row:2}
+  .main-content{grid-column:2;grid-row:2}
+  .data-col{display:block;grid-column:3;grid-row:2}
+  .app-footer{grid-column:1/-1}
+}
+.data-col .card{padding:16px 18px}
+.data-col .ledger-stat{display:flex;justify-content:space-between;font-size:.78rem;padding:6px 0;color:var(--muted)}
+.data-col .ledger-stat strong{color:var(--text);font-weight:800}
+.data-col .ledger-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,127,102,.12)}
+.data-col .ledger-row:last-child{border-bottom:none}
+.data-col .ledger-dot{width:26px;height:26px;border-radius:8px;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-size:.72rem;color:var(--on-primary)}
+.data-col .ledger-when{font-size:.72rem;color:var(--muted);margin-left:auto;white-space:nowrap}
+.data-col .ledger-note{font-size:.72rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:660px){
+  .app{grid-template-columns:1fr;padding:1rem .75rem 5.5rem;max-width:100vw;overflow-x:hidden}
+  /* Compact Amp row: small Amp beside the speech bubble, streak bar below, so
+     the check-in form starts inside the first viewport. Personality intact:
+     same CSS+SVG parts (belly fill, blink, mouth, click reactions), just
+     smaller. Desktop unchanged. */
+  .watt-panel{position:static;flex-direction:row;flex-wrap:wrap;align-items:center;gap:.4rem .6rem;max-width:100%}
+  .watt-wrap{width:84px;height:126px;order:1;flex-shrink:0}
+  .watt-inner{transform:scale(.6);transform-origin:top left}
+  .speech-bubble{flex:1;min-width:0;width:auto;font-size:.8rem;padding:.6rem .8rem;order:2;max-width:100%;min-height:52px}
+  .speech-bubble::after{bottom:auto;top:50%;left:-10px;transform:translateY(-50%);border:5px solid transparent;border-top-color:transparent;border-right-color:var(--card-border)}
+  .speech-bubble::before{bottom:auto;top:50%;left:-9px;transform:translateY(-50%);border:5px solid transparent;border-top-color:transparent;border-right-color:rgba(28,48,53,.55);z-index:1}
+  .streak-bar-wrap{order:3;width:100%;max-width:100%}
+  .main-content{max-width:100%;overflow-x:hidden}
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tab{min-width:0;white-space:nowrap;font-size:.72rem;padding:9px 3px}
+  .frow{grid-template-columns:1fr 1fr;gap:6px}
+  .card{padding:14px 12px}
+  .auth-split{max-width:100vw}
+  .auth-box{padding:28px 20px;max-width:100%}
+  .auth-promo{display:none}
+}
+@media(min-width:661px){
+  .auth-split{display:flex;max-width:820px;gap:0}
+  .auth-promo{display:flex;flex-direction:column;justify-content:center;padding:48px;background:rgba(28,48,53,.85);border-radius:24px 0 0 24px;flex:1;min-width:320px;border:1px solid rgba(255,127,102,.15);border-right:none;position:relative;overflow:hidden;backdrop-filter:blur(16px)}
+  .auth-promo::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(255,127,102,.08),transparent 60%);pointer-events:none}
+  .auth-promo .promo-title{font-family:var(--font-head);font-size:1.8rem;color:var(--text);margin-bottom:14px;line-height:1.3;position:relative}
+  .auth-promo .promo-sub{font-size:.88rem;color:var(--muted);line-height:1.8;position:relative}
+  .auth-box{border-radius:0 24px 24px 0}
+  .auth-bug-mobile{display:none}
+}
+/* Reduced motion: calm the ambient/character loops for users who ask for it */
+@media(prefers-reduced-motion:reduce){
+  .bg-blob,.state-idle,.state-pleased,.state-celebrating,.spark-bolt svg,.spark-belly-glow,.spark-belly-fill::before,.battery-fill::after,.battery-wrap.fully-charged .battery-outer{animation:none!important}
+  .battery-fill,.spark-belly-fill,.streak-fill{transition:none!important}
+}
+.pro-badge-region{display:none;align-items:center;gap:.5rem;padding:.35rem .6rem;background:linear-gradient(135deg,rgba(255,194,71,.18),rgba(255,127,102,.12));border:1px solid rgba(255,194,71,.3);border-radius:10px;font-size:.8rem}
+.pro-badge-region.show{display:inline-flex}
+.pro-badge{background:linear-gradient(135deg,#FFC247,#E85F45);color:var(--on-primary);padding:.15rem .5rem;border-radius:6px;font-weight:700;letter-spacing:.04em;font-size:.7rem}
+.pro-until-text{color:rgba(255,127,102,.85);font-size:.75rem}
+.unlock-pro-btn{display:inline-block;padding:.35rem .75rem;background:rgba(255,194,71,.18);border:1px solid rgba(255,194,71,.35);color:var(--pro-t);border-radius:10px;text-decoration:none;font-size:.8rem;font-weight:600;cursor:pointer}
+.unlock-pro-btn:hover{background:rgba(255,194,71,.3)}
+.pro-history-nudge{margin:.5rem 0;padding:.5rem .75rem;background:rgba(255,194,71,.1);border:1px solid rgba(255,194,71,.25);border-radius:8px;font-size:.8rem;color:var(--pro-t)}
+.pro-history-nudge a{color:var(--pro-t);font-weight:700;text-decoration:underline}
+.pro-star{color:var(--pro-t);font-size:.8em;margin-right:.2em;vertical-align:.05em}
+.pro-tag{display:inline-flex;align-items:center;gap:.25rem;background:rgba(255,194,71,.18);color:var(--pro-t);border:1px solid rgba(255,194,71,.30);padding:.12rem .5rem;border-radius:999px;font-size:.66rem;font-weight:700;letter-spacing:.02em}
+/* grid-column spans both columns — without it the footer auto-places into the
+   280px sidebar column and the legal links wrap one per line on desktop */
+.app-footer{grid-column:1/-1;max-width:760px;margin:32px auto 0;padding:18px 16px 40px;border-top:1px solid var(--card-border);text-align:center}
+.footer-legal{display:flex;gap:.5rem;justify-content:center;align-items:center;flex-wrap:wrap;font-size:.78rem}
+.footer-legal a{color:var(--muted);text-decoration:underline;display:inline-flex;align-items:center;min-height:44px;padding:0 4px}
+.footer-legal a:hover{color:var(--text)}
+.footer-legal span{color:var(--muted);opacity:.8}
+.footer-meta{margin-top:8px;font-size:.7rem;color:var(--muted)}
+.footer-account{margin-top:14px;font-size:.74rem}
+.footer-account>summary{list-style:none;cursor:pointer;color:var(--muted);opacity:1;display:inline-block;padding:.2rem .5rem}
+.footer-account>summary::-webkit-details-marker{display:none}
+.footer-account>summary:hover{opacity:1}
+.footer-account-body{margin-top:12px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.footer-acct-email{font-size:.72rem;color:var(--muted)}
+.footer-export-link{background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:.74rem;font-family:inherit;padding:.2rem .5rem;min-height:44px;display:inline-flex;align-items:center}
+.footer-export-link:hover{color:var(--text)}
+.footer-delete-link{background:none;border:none;color:var(--red-t);text-decoration:underline;cursor:pointer;font-size:.74rem;font-family:inherit;padding:.2rem .5rem;min-height:44px;display:inline-flex;align-items:center}
+/* Pro-required modal */
+.pro-required-modal{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px}
+.pro-required-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px)}
+.pro-required-card{position:relative;background:#16262A;color:#EEF5F3;border-radius:16px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);font-family:inherit}
+.pro-required-badge{display:inline-block;background:linear-gradient(135deg,#FFC247,#E85F45);color:var(--on-primary);font-size:11px;font-weight:800;letter-spacing:.08em;padding:5px 12px;border-radius:7px;margin-bottom:14px}
+.pro-required-title{margin:0 0 8px;font-size:1.1rem;font-weight:800;color:#EEF5F3}
+.pro-required-desc{margin:0 0 10px;font-size:.9rem;color:#9BB3AE;line-height:1.55}
+.pro-required-price{margin:0 0 22px;font-size:.8rem;color:#9BB3AE}
+.pro-required-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.pro-required-actions button,.pro-required-actions a{padding:10px 18px;border-radius:9px;font-weight:700;font-size:.9rem;border:none;cursor:pointer;text-decoration:none;font-family:inherit;line-height:1;display:inline-block}
+.pro-required-cancel{background:#24404A;color:#EEF5F3}
+.pro-required-cancel:hover{background:#2C4C57}
+.pro-required-cta{background:linear-gradient(135deg,#FFC247,#E85F45);color:var(--on-primary)}
+.pro-required-cta:hover{filter:brightness(1.06)}
+:root{--font-head:'Bricolage Grotesque','Avenir Next',system-ui,sans-serif;--font-body:'Figtree','Avenir Next',system-ui,sans-serif;--on-primary:#2B0C05}button,input,select,textarea{font-family:inherit}</style>
+</head>
+<body>
+<div class="bg-mesh">
+  <div class="bg-blob blob1"></div>
+  <div class="bg-blob blob2"></div>
+  <div class="bg-blob blob3"></div>
+  <div class="bg-blob blob4"></div>
+</div>
+
+<!-- BOOT
+     First paint on every load. The session is an HttpOnly cookie the page can't
+     read, so app.js holds this up for one GET /api/me and then shows the app or
+     the auth screen. The message starts empty on purpose: a visitor with no
+     session should never read words about signing in. -->
+<div class="boot-screen" id="boot-screen">
+  <div class="boot-dot"></div>
+  <p class="boot-msg" id="boot-msg" role="status" aria-live="polite"></p>
+</div>
+
+<!-- AUTH
+     Left visible in the markup so the landing copy stays readable to anything that
+     does not run scripts. The boot screen above covers it on first paint, and the
+     boot gate in app.js decides within its first statements which of the two the
+     reader actually gets. Arriving here from the hub used to paint this whole card
+     for about half a second while hub-sso ran. -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-split">
+    <section class="auth-mobile-pitch" aria-label="What Energy Battery does">Log your energy through the day and watch your battery fill. Free to track. Pro adds the Patterns view and your full history.</section>
+    <section class="auth-promo" aria-label="What Energy Battery does">
+      <div class="promo-title" style="position:relative">Track your energy.<br>Find your spark.</div>
+      <div class="promo-sub" style="position:relative">Log your energy levels through the day and watch your battery fill up. Tracking is free. Pro adds the Patterns view that shows what charges and drains you, plus your full history.</div>
+      <div style="margin-top:24px;position:relative;display:flex;justify-content:center">
+        <svg viewBox="0 0 140 210" width="88" height="132" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+<defs>
+<radialGradient id="ggpromo"><stop offset="0" stop-color="#6EE7B7" stop-opacity="0.6175"/><stop offset="1" stop-color="#6EE7B7" stop-opacity="0"/></radialGradient>
+<linearGradient id="gtpromo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFC247"/><stop offset="1" stop-color="#6EE7B7"/></linearGradient>
+<clipPath id="gcpromo"><ellipse cx="70" cy="151.5" rx="30" ry="34"/></clipPath>
+</defs>
+<circle class="glow-halo" cx="70" cy="151.5" r="54.9" fill="url(#ggpromo)"/>
+<g class="glow-wings" opacity="0.5625"><ellipse cx="38" cy="93.5" rx="26" ry="15" transform="rotate(-28 38 93.5)" fill="#E8F4FF"/><ellipse cx="102" cy="93.5" rx="26" ry="15" transform="rotate(28 102 93.5)" fill="#E8F4FF"/></g>
+<path d="M58 35.5 q-6 -18 -16 -20" stroke="#FF7F66" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M82 35.5 q6 -18 16 -20" stroke="#FF7F66" stroke-width="3" fill="none" stroke-linecap="round"/>
+<circle cx="42" cy="15.5" r="4.5" fill="#FFC247"/><circle cx="98" cy="15.5" r="4.5" fill="#FFC247"/>
+<ellipse cx="70" cy="151.5" rx="30" ry="34" fill="#2A3342"/>
+<rect x="36" y="127.7" width="68" height="61.8" fill="url(#gtpromo)" clip-path="url(#gcpromo)"/>
+<ellipse cx="60" cy="137.5" rx="8" ry="12" fill="#fff" opacity=".22"/>
+<path d="M44 141.5 q26 8 52 0 M42 157.5 q28 8 56 0" stroke="#FF7F66" stroke-width="2" opacity=".35" fill="none"/>
+<ellipse cx="70" cy="71.5" rx="42" ry="40" fill="#FF7F66"/>
+<ellipse cx="56" cy="53.5" rx="14" ry="9" fill="#fff" opacity=".12"/>
+<g class="glow-eyes" style="transform-origin:70px 67.5px"><circle cx="55" cy="67.5" r="9" fill="#fff"/><circle cx="56.5" cy="69" r="5.2" fill="#1A1020"/><circle cx="58.5" cy="66.3" r="1.9" fill="#fff"/><circle cx="85" cy="67.5" r="9" fill="#fff"/><circle cx="86.5" cy="69" r="5.2" fill="#1A1020"/><circle cx="88.5" cy="66.3" r="1.9" fill="#fff"/></g>
+<ellipse cx="44" cy="85.5" rx="7" ry="4.5" fill="#FF7A9A" opacity="0.4475"/><ellipse cx="96" cy="85.5" rx="7" ry="4.5" fill="#FF7A9A" opacity="0.4475"/>
+<path d="M61 88.5 q9 11 18 0 z" fill="#1A1020"/><path d="M65 92.7 q5 3 10 0" fill="#FF8FA3"/>
+<path d="M40 105.5 q-10 8 -8 18 M100 105.5 q10 8 8 18" stroke="#FF7F66" stroke-width="4" fill="none" stroke-linecap="round"/>
+</svg>
+      </div>
+    </section>
+    <!-- GUEST TRY (UX fixes 2026-11). A logged-out visitor does one sample check-in
+         and watches the battery fill BEFORE any sign-up form. Nothing here talks to
+         the server: the sample lives in localStorage (eb_guest_ci) until the person
+         signs up or logs in, then goes through the normal authed POST /api/checkins.
+         Hidden in the markup; app.js decides whether a visitor lands here. -->
+    <section class="auth-box guest-box" id="guest-box" aria-label="Try a check-in" hidden>
+      <div id="guest-try">
+        <div class="guest-glow" id="guest-glow-try"></div>
+        <h1 class="guest-head">How charged are you right now?</h1>
+        <p class="guest-sub">Try one check-in. No account yet, just a number and what you were doing.</p>
+        <div class="energy-slider-wrap">
+          <label class="sr-only" for="guest-energy">Energy level, 1 (empty) to 10 (full)</label>
+          <input type="range" min="1" max="10" value="5" class="energy-slider" id="guest-energy" aria-describedby="guest-energy-val"/>
+          <div class="energy-val" id="guest-energy-val" style="color:var(--amber)">5</div>
+        </div>
+        <span class="guest-lbl" id="guest-tags-lbl">What were you just doing?</span>
+        <div class="tag-pills" id="guest-tag-pills" role="group" aria-labelledby="guest-tags-lbl"></div>
+        <p class="eb-hint">Tap one or more.</p>
+        <button class="auth-btn" type="button" id="guest-fill-btn" style="margin-top:18px">Fill my battery</button>
+        <button class="auth-forgot guest-alt" type="button" data-action="guest-login">Already have an account? Log in</button>
+      </div>
+      <div id="guest-result" hidden>
+        <div class="guest-result">
+          <div class="guest-glow" id="guest-glow-result"></div>
+          <div class="guest-batt">
+            <div class="guest-batt-body">
+              <div class="battery-terminal"></div>
+              <div class="battery-outer"><div class="battery-fill" id="guest-battery-fill" style="height:0"></div><div class="battery-shimmer"></div></div>
+            </div>
+            <div class="battery-pct" id="guest-battery-pct">--</div>
+            <div class="battery-label">your first check-in</div>
+          </div>
+        </div>
+        <div class="guest-bubble" id="guest-bubble" role="status"></div>
+        <p class="guest-sub">Make a free account and this check-in moves in with you. Log a few more and Glow will tell you something she noticed.</p>
+        <button class="auth-btn" type="button" data-action="guest-signup">Save it with a free account</button>
+        <button class="auth-forgot guest-alt" type="button" data-action="guest-redo">Change my answer</button>
+        <button class="auth-forgot guest-alt" type="button" data-action="guest-login" style="margin-top:2px">Already have an account? Log in</button>
+      </div>
+    </section>
+    <section class="auth-box" id="auth-box" aria-label="Log in or sign up">
+      <div class="auth-bug-mobile">
+        <svg viewBox="0 0 140 210" width="60" height="90" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+<defs>
+<radialGradient id="ggmob"><stop offset="0" stop-color="#6EE7B7" stop-opacity="0.6175"/><stop offset="1" stop-color="#6EE7B7" stop-opacity="0"/></radialGradient>
+<linearGradient id="gtmob" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFC247"/><stop offset="1" stop-color="#6EE7B7"/></linearGradient>
+<clipPath id="gcmob"><ellipse cx="70" cy="151.5" rx="30" ry="34"/></clipPath>
+</defs>
+<circle class="glow-halo" cx="70" cy="151.5" r="54.9" fill="url(#ggmob)"/>
+<g class="glow-wings" opacity="0.5625"><ellipse cx="38" cy="93.5" rx="26" ry="15" transform="rotate(-28 38 93.5)" fill="#E8F4FF"/><ellipse cx="102" cy="93.5" rx="26" ry="15" transform="rotate(28 102 93.5)" fill="#E8F4FF"/></g>
+<path d="M58 35.5 q-6 -18 -16 -20" stroke="#FF7F66" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M82 35.5 q6 -18 16 -20" stroke="#FF7F66" stroke-width="3" fill="none" stroke-linecap="round"/>
+<circle cx="42" cy="15.5" r="4.5" fill="#FFC247"/><circle cx="98" cy="15.5" r="4.5" fill="#FFC247"/>
+<ellipse cx="70" cy="151.5" rx="30" ry="34" fill="#2A3342"/>
+<rect x="36" y="127.7" width="68" height="61.8" fill="url(#gtmob)" clip-path="url(#gcmob)"/>
+<ellipse cx="60" cy="137.5" rx="8" ry="12" fill="#fff" opacity=".22"/>
+<path d="M44 141.5 q26 8 52 0 M42 157.5 q28 8 56 0" stroke="#FF7F66" stroke-width="2" opacity=".35" fill="none"/>
+<ellipse cx="70" cy="71.5" rx="42" ry="40" fill="#FF7F66"/>
+<ellipse cx="56" cy="53.5" rx="14" ry="9" fill="#fff" opacity=".12"/>
+<g class="glow-eyes" style="transform-origin:70px 67.5px"><circle cx="55" cy="67.5" r="9" fill="#fff"/><circle cx="56.5" cy="69" r="5.2" fill="#1A1020"/><circle cx="58.5" cy="66.3" r="1.9" fill="#fff"/><circle cx="85" cy="67.5" r="9" fill="#fff"/><circle cx="86.5" cy="69" r="5.2" fill="#1A1020"/><circle cx="88.5" cy="66.3" r="1.9" fill="#fff"/></g>
+<ellipse cx="44" cy="85.5" rx="7" ry="4.5" fill="#FF7A9A" opacity="0.4475"/><ellipse cx="96" cy="85.5" rx="7" ry="4.5" fill="#FF7A9A" opacity="0.4475"/>
+<path d="M61 88.5 q9 11 18 0 z" fill="#1A1020"/><path d="M65 92.7 q5 3 10 0" fill="#FF8FA3"/>
+<path d="M40 105.5 q-10 8 -8 18 M100 105.5 q10 8 8 18" stroke="#FF7F66" stroke-width="4" fill="none" stroke-linecap="round"/>
+</svg>
+        <div class="auth-bug-bubble">*charging up*</div>
+      </div>
+      <div class="auth-logo">
+        <p class="eb-doc-title"><span class="eb-brand"><svg width="40" height="40" viewBox="0 0 80 80" aria-hidden="true" focusable="false"><rect x="6" y="6" width="68" height="68" rx="20" fill="#E85F45"/><rect x="33" y="13" width="14" height="7" rx="2.5" fill="#fff"/><rect x="22" y="20" width="36" height="47" rx="11" fill="#fff"/><rect x="26" y="36" width="28" height="27" rx="9" fill="#FFC247"/><path d="M47 25 L29 47 h10 l-4 15 18-22h-10z" fill="#E85F45"/></svg><span class="eb-word"><span class="eb-word-ink">Energy</span> <span class="eb-word-pop">Battery<svg class="eb-word-swoosh" viewBox="0 0 92 14" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M4 9C24 4 60 4 88 8" stroke="#FFB09F" stroke-width="6" stroke-linecap="round" fill="none"/></svg></span></span></span></p>
+        <span class="t2">track your energy. find your spark.</span>
+      </div>
+      <div class="auth-tabs">
+        <button class="auth-tab active">Log In</button>
+        <button class="auth-tab">Sign Up</button>
+      </div>
+      <div id="guest-carry-note" class="guest-note" hidden>Your sample check-in is saved on this device. It moves into your account when you sign up or log in.</div>
+      <div id="auth-err" class="auth-err"></div>
+      <div id="auth-suc" class="auth-suc"></div>
+      <form id="auth-form" novalidate>
+        <div class="auth-fg"><label class="auth-label" for="auth-email">Email</label><input class="auth-input" type="email" id="auth-email" name="email" required autocomplete="username"/></div>
+        <div class="auth-fg"><label class="auth-label" for="auth-pw">Password</label><input class="auth-input" type="password" id="auth-pw" name="password" required minlength="10" maxlength="200" autocomplete="current-password"/><div id="auth-pw-hint" style="display:none;font-size:11px;color:var(--muted);margin-top:4px">10–200 characters.</div></div>
+        <div class="auth-fg" id="auth-pw2-wrap" style="display:none"><label class="auth-label" for="auth-pw2">Confirm Password</label><input class="auth-input" type="password" id="auth-pw2" name="confirm-password" maxlength="200" autocomplete="new-password"/></div>
+        <button class="auth-btn" type="submit" id="auth-submit-btn">Log In</button>
+        <div id="signup-consent" style="display:none;font-size:11px;color:var(--muted);margin-top:10px;text-align:center;line-height:1.5">By creating an account, you agree to our <a href="/legal/terms" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Terms</a> and <a href="/legal/privacy" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Privacy Policy</a>.</div>
+      </form>
+      <div id="code-box" style="display:none">
+        <p style="font-size:13px;color:var(--muted);margin:0 0 12px">Enter the 6-digit code below to finish verifying your account.</p>
+        <div class="auth-fg"><label class="auth-label" for="auth-code">Verification code</label><input class="auth-input" type="text" id="auth-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" placeholder="000000" style="letter-spacing:6px;text-align:center;font-size:18px"/></div>
+        <div class="auth-fg" id="code-pw-wrap" style="display:none"><label class="auth-label" for="code-pw">Password</label><input class="auth-input" type="password" id="code-pw" name="password" maxlength="200" autocomplete="current-password"/><div style="font-size:11px;color:var(--muted);margin-top:4px">The password you picked when you signed up.</div></div>
+        <button class="auth-btn" type="button" id="verify-code-btn">Verify</button>
+        <button class="auth-forgot" type="button" id="resend-code-btn" style="margin-top:6px">Resend code</button>
+      </div>
+      <button class="auth-forgot" id="forgot-btn">Forgot password?</button>
+      <button class="auth-forgot guest-alt" type="button" id="guest-try-link" data-action="guest-try">Not ready to sign up? Try a check-in first</button>
+      <div class="auth-privacy">
+        <a href="/guide">Guide</a>
+      <span>&middot;</span>
+      <a href="/legal/privacy" target="_blank" rel="noopener">Privacy</a>
+        &middot;
+        <a href="/legal/terms" target="_blank" rel="noopener">Terms</a>
+        &middot;
+        <a href="/legal/accessibility" target="_blank" rel="noopener">Accessibility</a>
+        &middot;
+        <a href="/legal/do-not-sell" target="_blank" rel="noopener">Do Not Sell</a>
+        &middot;
+        <a href="https://github.com/jensoltys/energybattery" target="_blank" rel="noopener noreferrer">Source code</a>
+        &middot;
+        <a href="mailto:support@example.com">Contact: support@example.com</a>
+        <div style="margin-top:6px">&copy; <span data-year>2026</span> YOUR COMPANY NAME &middot; YOUR BUSINESS ADDRESS</div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- RESET -->
+<div class="reset-screen" id="reset-screen">
+  <section class="auth-box" aria-label="Set a new password" style="max-width:380px;border-radius:24px">
+    <div class="auth-logo"><p class="t1" style="font-size:1.3rem">Set new password</p></div>
+    <div id="reset-err" class="auth-err"></div>
+    <div class="auth-fg"><label class="auth-label" for="reset-pw">New Password</label><input class="auth-input" type="password" id="reset-pw" name="new-password" required minlength="10" maxlength="200" autocomplete="new-password"/></div>
+    <button class="auth-btn">Reset Password</button>
+  </section>
+</div>
+
+<!-- APP -->
+<div class="app" id="app-outer" style="display:none">
+  <header class="app-header">
+    <div class="app-header-top">
+      <div class="app-header-actions">
+        <span id="pro-badge-region" class="pro-badge-region">
+          <span class="pro-badge">PRO</span>
+          <span id="pro-until-text" class="pro-until-text"></span>
+        </span>
+        <a id="unlock-pro-btn" class="unlock-pro-btn" href="#" data-go-pro="" style="display:none">Go Pro</a>
+        <button class="helpbtn" type="button" id="hdr-help" aria-label="How Energy Battery works">?</button>
+        <button class="hdr-link" data-logout>log out</button>
+        <div style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span id="sync-dot" style="width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 4px var(--green-glow)"></span> <span id="sync-txt">Synced</span></div>
+      </div>
+    </div>
+    <h1><a class="eb-brand" href="/" aria-label="Energy Battery home"><svg width="34" height="34" viewBox="0 0 80 80" aria-hidden="true" focusable="false"><rect x="6" y="6" width="68" height="68" rx="20" fill="#E85F45"/><rect x="33" y="13" width="14" height="7" rx="2.5" fill="#fff"/><rect x="22" y="20" width="36" height="47" rx="11" fill="#fff"/><rect x="26" y="36" width="28" height="27" rx="9" fill="#FFC247"/><path d="M47 25 L29 47 h10 l-4 15 18-22h-10z" fill="#E85F45"/></svg><span class="eb-word"><span class="eb-word-ink">Energy</span> <span class="eb-word-pop">Battery<svg class="eb-word-swoosh" viewBox="0 0 92 14" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M4 9C24 4 60 4 88 8" stroke="#FFB09F" stroke-width="6" stroke-linecap="round" fill="none"/></svg></span></span></a></h1>
+    <div class="app-subtitle">track your energy. find your spark.</div>
+  </header>
+
+  <!-- GLOW PANEL (ids keep the old watt names so tests and the gate still find them) -->
+  <aside class="watt-panel">
+    <div class="speech-bubble" id="speechBubble">no check-ins today.<br>i'm in the dark here.</div>
+    <div class="watt-wrap state-idle" id="wattWrap" role="button" tabindex="0" aria-label="Poke Glow">
+      <div class="watt-inner" id="glowArt"><svg viewBox="0 0 140 210" width="140" height="210" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+<defs>
+<radialGradient id="ggboot"><stop offset="0" stop-color="#FF5A6E" stop-opacity="0.1775"/><stop offset="1" stop-color="#FF5A6E" stop-opacity="0"/></radialGradient>
+<linearGradient id="gtboot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFC247"/><stop offset="1" stop-color="#FF5A6E"/></linearGradient>
+<clipPath id="gcboot"><ellipse cx="70" cy="159.5" rx="30" ry="34"/></clipPath>
+</defs>
+<circle class="glow-halo" cx="70" cy="159.5" r="27.7" fill="url(#ggboot)"/>
+<g class="glow-wings" opacity="0.3625"><ellipse cx="38" cy="101.5" rx="26" ry="15" transform="rotate(-28 38 101.5)" fill="#E8F4FF"/><ellipse cx="102" cy="101.5" rx="26" ry="15" transform="rotate(28 102 101.5)" fill="#E8F4FF"/></g>
+<path d="M58 43.5 q-6 -18 -16 -20" stroke="#FF7F66" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M82 43.5 q6 -18 16 -20" stroke="#FF7F66" stroke-width="3" fill="none" stroke-linecap="round"/>
+<circle cx="42" cy="23.5" r="4.5" fill="#FFC247"/><circle cx="98" cy="23.5" r="4.5" fill="#FFC247"/>
+<ellipse cx="70" cy="159.5" rx="30" ry="34" fill="#2A3342"/>
+<rect x="36" y="190.1" width="68" height="7.4" fill="url(#gtboot)" clip-path="url(#gcboot)"/>
+<ellipse cx="60" cy="145.5" rx="8" ry="12" fill="#fff" opacity=".22"/>
+<path d="M44 149.5 q26 8 52 0 M42 165.5 q28 8 56 0" stroke="#FF7F66" stroke-width="2" opacity=".35" fill="none"/>
+<ellipse cx="70" cy="79.5" rx="42" ry="40" fill="#FF7F66"/>
+<ellipse cx="56" cy="61.5" rx="14" ry="9" fill="#fff" opacity=".12"/>
+<g class="glow-eyes" style="transform-origin:70px 75.5px"><circle cx="55" cy="75.5" r="9" fill="#fff"/><circle cx="56.5" cy="77" r="5.2" fill="#1A1020"/><circle cx="58.5" cy="74.3" r="1.9" fill="#fff"/><path d="M45 65.5 h20 v10.3 q-10 5 -20 0 z" fill="#FF7F66"/><circle cx="85" cy="75.5" r="9" fill="#fff"/><circle cx="86.5" cy="77" r="5.2" fill="#1A1020"/><circle cx="88.5" cy="74.3" r="1.9" fill="#fff"/><path d="M75 65.5 h20 v10.3 q-10 5 -20 0 z" fill="#FF7F66"/></g>
+<ellipse cx="44" cy="93.5" rx="7" ry="4.5" fill="#FF7A9A" opacity="0.16749999999999998"/><ellipse cx="96" cy="93.5" rx="7" ry="4.5" fill="#FF7A9A" opacity="0.16749999999999998"/>
+<path d="M63 100.5 q7 -5 14 0" stroke="#1A1020" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+<path d="M40 113.5 q-10 8 -8 18 M100 113.5 q10 8 8 18" stroke="#FF7F66" stroke-width="4" fill="none" stroke-linecap="round"/>
+</svg></div>
+    </div>
+    <div class="streak-bar-wrap">
+      <div class="bar-label"><span>streak</span><span id="streakLabel">0 days</span></div>
+      <div class="streak-bar"><div class="streak-fill" id="streakFill" style="width:0%"></div></div>
+      <div class="backup-cell" id="backupCell" hidden></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <!-- Shown by loadAppData() when the first load fails; Retry runs it again. -->
+    <div id="load-banner" class="load-banner" role="alert" style="display:none"><span id="load-banner-msg"></span><button type="button" class="load-retry-btn" id="load-retry-btn">Retry</button></div>
+    <div class="tabs">
+      <button class="tab active" data-tab="checkin" data-tooltip="Log your energy right now">Check In</button>
+      <button class="tab" data-tab="battery" data-tooltip="Your energy level today">Battery</button>
+      <button class="tab" data-tab="log" data-tooltip="Your check-in history">Log</button>
+      <button class="tab" data-tab="patterns" data-tooltip="What charges and drains you"><span class="pro-star" title="Pro feature">&#9733;</span>Patterns</button>
+    </div>
+
+    <div class="panel" id="panel-battery">
+      <div class="battery-wrap" id="battery-wrap">
+        <div>
+          <div class="battery-terminal"></div>
+          <div class="battery-outer" id="battery-outer">
+            <div class="battery-fill" id="battery-fill"></div>
+            <div class="battery-shimmer"></div>
+            <div class="battery-icons" id="battery-icons"></div>
+          </div>
+          <div class="battery-pct" id="battery-pct">--</div>
+          <div class="battery-label">today's energy</div>
+        </div>
+      </div>
+      <div id="today-summary"></div>
+      <div id="free-insight"></div>
+      <button class="btn btn-amber" id="go-checkin-btn" style="margin-top:8px">Log a Check-In</button>
+      <!-- Pro, and only when today is under your average. A separate object from
+           the menu itself: one is for reading, this is for one quick answer. -->
+      <div id="hand-me-one"></div>
+      <!-- App help sits ABOVE the promo card and is a separate array:
+           TIPS teach the app, GENERAL_NUDGES sell something. Never one mixed list. -->
+      <div id="app-tip"></div>
+      <div id="daily-tip"></div>
+    </div>
+
+    <div class="panel" id="panel-log">
+      <!-- No Pro star/tag here: the Log tab is free. Only history BEYOND 7 days is
+           Pro, and the pro-history-nudge below says so when the window is capped. -->
+      <div class="sec-lbl">check-in history</div>
+      <div id="log-list"></div>
+    </div>
+
+    <!-- One Pro signal in the header (the star), not two. The lock card below
+         already says "Pattern Insights is a Pro feature" in bold. -->
+    <div class="panel" id="panel-patterns"><div id="recharge-content"></div><div class="sec-lbl"><span class="pro-star" title="Pro feature">&#9733;</span>pattern insights</div><div id="patterns-content"></div></div>
+
+    <div class="panel active" id="panel-checkin">
+      <div class="card">
+        <div class="sec-lbl">how's your energy?</div>
+        <div class="fg">
+          <div class="energy-slider-wrap">
+            <label class="sr-only" for="ci-energy">Energy level, 1 (empty) to 10 (full)</label>
+            <input type="range" min="1" max="10" value="5" class="energy-slider" id="ci-energy" aria-describedby="ci-energy-val"/>
+            <div class="energy-val" id="ci-energy-val" style="color:var(--amber)">5</div>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="flbl" id="ci-day-label">Which day?</label>
+          <div class="time-toggle" role="group" aria-labelledby="ci-day-label">
+            <button type="button" class="day-btn active" data-day="today">Today</button>
+            <button type="button" class="day-btn" data-day="yesterday">Yesterday</button>
+            <button type="button" class="day-btn" data-day="other">Earlier</button>
+          </div>
+          <label class="sr-only" for="ci-date">Check-in date</label>
+          <input type="date" class="finput" id="ci-date" name="ci-date" hidden/>
+          <p class="eb-hint" id="ci-date-hint" hidden></p>
+        </div>
+        <div class="fg">
+          <label class="flbl">Time of Day</label>
+          <div class="time-toggle">
+            <button type="button" class="time-btn" data-time="morning">Morning</button>
+            <button type="button" class="time-btn active" data-time="afternoon">Afternoon</button>
+            <button type="button" class="time-btn" data-time="evening">Evening</button>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="flbl">What were you doing? (select all)</label>
+          <p class="eb-hint">Tap whatever was true, even the unflattering ones. The tags only tell you something if they are real.</p>
+          <div class="tag-pills" id="tag-pills"></div>
+        </div>
+        <div class="frow">
+          <div class="fg"><label class="flbl" for="ci-charged">What charged you?</label><input class="finput" id="ci-charged" name="ci-charged" placeholder="Morning run, good sleep..."/></div>
+          <div class="fg"><label class="flbl" for="ci-drained">What drained you?</label><input class="finput" id="ci-drained" name="ci-drained" placeholder="Long meeting, bad news..."/></div>
+        </div>
+        <div class="fg"><label class="flbl" for="ci-note">Note (optional)</label><input class="finput" id="ci-note" name="ci-note" placeholder="Anything else..."/></div>
+        <button class="btn btn-amber" id="log-it-btn">Log It</button>
+        <p class="eb-hint" id="ci-footer-hint">Log again later today. Two or three check-ins are what show you a shape, not just a score.</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- DATA COLUMN (>=1440 only) — read-only recap beside the content, so the
+       extra width on a wide screen carries something real instead of margin.
+       Direct child of .app on purpose; see the 1440 grid rule. -->
+  <aside class="data-col" id="data-col" aria-label="Energy recap">
+    <div class="card" style="margin-bottom:14px">
+      <div class="sec-lbl">at a glance</div>
+      <div id="recap-stats"></div>
+    </div>
+    <div class="card">
+      <div class="sec-lbl">recent check-ins</div>
+      <div id="recap-list"></div>
+    </div>
+  </aside>
+
+  <footer class="app-footer">
+    <nav class="footer-legal" aria-label="More apps" style="margin-bottom:8px"><a href="https://jenbuiltit.com/app-hub" style="font-weight:700">Browse all apps in the App Hub</a></nav>
+    <nav class="footer-legal" aria-label="Legal and affiliate">
+      <a href="/legal/privacy" target="_blank" rel="noopener">Privacy</a>
+      <span>&middot;</span>
+      <a href="/legal/terms" target="_blank" rel="noopener">Terms</a>
+      <span>&middot;</span>
+      <a href="/legal/accessibility" target="_blank" rel="noopener">Accessibility</a>
+      <span>&middot;</span>
+      <a href="/legal/do-not-sell" target="_blank" rel="noopener">Do Not Sell or Share My Info</a>
+      <span>&middot;</span>
+      <a href="https://github.com/jensoltys/energybattery" target="_blank" rel="noopener noreferrer">Source code</a>
+      <span>&middot;</span>
+      <a href="mailto:support@example.com">Contact: support@example.com</a>
+    </nav>
+    <div class="footer-meta">&copy; <span data-year>2026</span> YOUR COMPANY NAME &middot; YOUR BUSINESS ADDRESS</div>
+    <details class="footer-account">
+      <summary>Account settings</summary>
+      <div class="footer-account-body">
+        <div class="footer-acct-email">Signed in as <strong id="acct-email"></strong></div>
+        <div class="footer-acct-email">Timezone: <strong id="acct-tz"></strong></div>
+        <button class="footer-export-link" type="button" data-action="change-timezone">Change timezone</button>
+        <div class="footer-acct-email">Tracking: <strong id="acct-track"></strong></div>
+        <button class="footer-export-link" type="button" data-action="change-track">Change what you track</button>
+        <button class="footer-export-link" type="button" data-action="export-data">Export my data</button>
+        <button class="footer-delete-link" type="button" data-action="confirm-delete-account">Delete my account</button>
+      </div>
+    </details>
+  </footer>
+</div>
+
+<!-- CELEBRATION -->
+<canvas id="confetti-canvas" aria-hidden="true"></canvas>
+<div class="celeb-overlay" id="celeb-overlay" role="dialog" aria-modal="true" aria-labelledby="celeb-title">
+  <div class="celeb-box">
+    <div id="celeb-icon" style="font-size:2.5rem"></div>
+    <div class="celeb-title" id="celeb-title"></div>
+    <div class="celeb-msg" id="celeb-msg"></div>
+    <div id="celeb-nudge"></div>
+    <button class="celeb-close">Keep Going</button>
+  </div>
+</div>
+
+<!-- MODALS -->
+<!-- Delete Account re-prompt modal: a stolen JWT alone must not be enough to
+     wipe data. Password accounts type their password. App Hub accounts that
+     never set one type DELETE and the App Hub sign-in on this device is checked. -->
+<div class="modal-overlay" id="delete-account-modal" role="dialog" aria-modal="true" aria-labelledby="delete-account-title">
+  <div class="modal-box" style="max-width:380px">
+    <h2 id="delete-account-title">Delete your account?</h2>
+    <p style="color:var(--muted);font-size:.85rem;line-height:1.6;margin-bottom:14px">
+      This deletes your account, every check-in, and every pattern. It can't be undone.
+    </p>
+    <p data-pro-on hidden style="color:var(--muted);font-size:.8rem;line-height:1.6;margin-bottom:14px">
+      Paying for Pro? Deleting your Energy Battery account doesn't cancel it. Cancel Pro wherever you bought it.
+    </p>
+    <div id="delete-pw-row">
+      <div class="fg" style="margin-bottom:8px">
+        <label class="flbl" for="delete-account-pw" style="font-size:.7rem">Current password</label>
+        <input class="finput" type="password" id="delete-account-pw" name="delete-password" placeholder="Current password" autocomplete="current-password"/>
+      </div>
+      <button class="auth-forgot" type="button" id="delete-use-hub-btn" data-pro-on hidden style="margin-bottom:12px;text-align:left">Signed up through the App Hub and never set a password?</button>
+    </div>
+    <div id="delete-hub-row" style="display:none">
+      <p style="color:var(--muted);font-size:.8rem;line-height:1.6;margin-bottom:10px">No password needed. We'll check the App Hub sign-in on this device instead. Type <strong>DELETE</strong> to confirm.</p>
+      <div class="fg" style="margin-bottom:8px">
+        <label class="flbl" for="delete-account-confirm" style="font-size:.7rem">Type DELETE</label>
+        <input class="finput" type="text" id="delete-account-confirm" name="delete-confirm" placeholder="DELETE" autocomplete="off" autocapitalize="characters" spellcheck="false"/>
+      </div>
+      <button class="auth-forgot" type="button" id="delete-use-pw-btn" style="margin-bottom:12px;text-align:left">I have a password</button>
+    </div>
+    <div id="delete-account-err" role="alert" style="color:var(--red-t);font-size:.8rem;margin-bottom:10px;display:none"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-sm" id="cancel-delete-account-btn" style="background:rgba(0,0,0,.08);color:var(--text)">Cancel</button>
+      <button class="btn btn-danger btn-sm" id="delete-account-confirm-btn">Delete Forever</button>
+    </div>
+  </div>
+</div>
+
+<div class="onboard-overlay" id="onboard-overlay" role="dialog" aria-modal="true" aria-label="Welcome">
+  <div class="onboard-box">
+    <div style="margin-bottom:12px"><svg viewBox="0 0 24 24" width="44" height="44" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6z" fill="#FF7F66"/></svg></div>
+    <div style="font-family:var(--font-head);font-size:1.3rem;margin-bottom:8px;color:var(--text)">Welcome to Energy Battery!</div>
+    <div style="font-size:.85rem;color:var(--muted);line-height:1.7;margin-bottom:20px">
+      Check in 1-3 times a day with your energy level. Tag what you were doing, note what charged or drained you.<br><br>
+      Over time, Glow will reveal your patterns. Knowledge is power. Literally.
+    </div>
+    <button class="btn btn-amber" id="onboard-go-btn">Let's Go!</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="tz-modal" role="dialog" aria-modal="true" aria-labelledby="tz-modal-title">
+  <div class="modal-box" style="max-width:380px;text-align:center">
+    <div style="margin-bottom:8px"><svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#FF7F66" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><line x1="3" y1="12" x2="21" y2="12"/></svg></div>
+    <h2 id="tz-modal-title">Set Your Timezone</h2>
+    <p>This ensures your daily check-ins reset at midnight in YOUR time, not UTC.</p>
+    <div class="fg">
+      <label class="flbl" for="tz-select">Your timezone</label>
+      <select class="fsel" id="tz-select">
+        <option value="America/New_York">Eastern (New York)</option>
+        <option value="America/Chicago">Central (Chicago)</option>
+        <option value="America/Denver">Mountain (Denver)</option>
+        <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
+        <option value="America/Anchorage">Alaska</option>
+        <option value="Pacific/Honolulu">Hawaii</option>
+        <option value="Europe/London">UK (London)</option>
+        <option value="Europe/Paris">Central Europe (Paris)</option>
+        <option value="Europe/Berlin">Germany (Berlin)</option>
+        <option value="Asia/Tokyo">Japan (Tokyo)</option>
+        <option value="Asia/Shanghai">China (Shanghai)</option>
+        <option value="Asia/Kolkata">India (Kolkata)</option>
+        <option value="Australia/Sydney">Australia (Sydney)</option>
+      </select>
+    </div>
+    <button class="btn btn-amber" id="tz-confirm-btn">Set Timezone</button>
+    <button class="footer-export-link" type="button" id="tz-cancel-btn" hidden style="margin-top:6px">Cancel</button>
+  </div>
+</div>
+
+<!-- First-run question that replaced the timezone step (the zone is detected
+     now, and stays editable in Account settings). Also reopened from settings. -->
+<div class="modal-overlay" id="track-modal" role="dialog" aria-modal="true" aria-labelledby="track-modal-title">
+  <div class="modal-box" style="max-width:380px;text-align:center">
+    <h2 id="track-modal-title">What do you want to track?</h2>
+    <p>Pick as many as you like. Those tags move to the front of your check-in form. You can change this any time in Account settings.</p>
+    <div class="track-opts" role="group" aria-labelledby="track-modal-title">
+      <button type="button" class="track-opt" data-track="work" aria-pressed="false">Work</button>
+      <button type="button" class="track-opt" data-track="sleep" aria-pressed="false">Sleep</button>
+      <button type="button" class="track-opt" data-track="food" aria-pressed="false">Food</button>
+      <button type="button" class="track-opt" data-track="people" aria-pressed="false">People</button>
+    </div>
+    <button class="btn btn-amber" id="track-confirm-btn">Done</button>
+    <button class="footer-export-link" type="button" id="track-cancel-btn" hidden style="margin-top:6px">Cancel</button>
+  </div>
+</div>
+
+<!-- Unified Pro-required modal — populated + shown by showProRequired() in app.js -->
+<!-- HELP PANEL: how the app works. Re-openable forever from the ? in the header. -->
+<div id="help-modal" class="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
+  <div class="help-backdrop" data-action="close-help"></div>
+  <div class="help-card">
+    <button type="button" class="help-x" data-action="close-help" aria-label="Close">&times;</button>
+    <div class="help-body">
+      <h2 id="help-modal-title">How Energy Battery works</h2>
+      <p class="help-sub">The whole app in two minutes.</p>
+
+      <h3>The big picture</h3>
+      <p>Your phone tells you it's at 40% and you plan around it. Your body doesn't. This app makes it.
+      A few times a day you say how charged you feel and what you were doing, and over a couple of
+      weeks that turns into a picture of what actually charges and drains you.</p>
+      <p>Glow is the firefly on the left. Her tail fills and glows with your day, and she'll say something
+      if you click her.</p>
+
+      <h3>Logging a check-in</h3>
+      <ol>
+        <li>Slide the energy number. 1 is fumes, 10 is fully charged. First instinct is the useful one.</li>
+        <li>Pick the time of day.</li>
+        <li>Tap what you were doing. As many tags as fit.</li>
+        <li>Say what charged you and what drained you, if anything stands out. Both optional.</li>
+        <li>Log It.</li>
+      </ol>
+      <p>Two or three check-ins a day beats one. One tells you today was a 6. Three tell you that you
+      were a 3 in the morning and an 8 after lunch, which is the thing you can plan around.</p>
+
+      <h3>The battery and the streak</h3>
+      <div class="helprow"><span class="hchip c-red">Low</span><span>Running down. Glow goes dim.</span></div>
+      <div class="helprow"><span class="hchip c-amber">Middling</span><span>Getting through it.</span></div>
+      <div class="helprow"><span class="hchip c-green">Charged</span><span>Full.</span></div>
+      <p>The level is today's average across your check-ins, not your last one. The streak counts days
+      where you logged anything at all, so a 2 out of 10 day still keeps it alive. Those are the days
+      most worth having in the data. The backup cell under the streak covers one missed day a week,
+      so a single off day won't reset it.</p>
+
+      <h3>What each tab is for</h3>
+      <ul>
+        <li><b>Check In</b> is the form. Start here.</li>
+        <li><b>Battery</b> is today: your level and how the day has gone.</li>
+        <li><b>Log</b> is your history, most recent first.</li>
+        <li><b>Patterns</b> is what the app noticed. That one's Pro.</li>
+      </ul>
+
+      <h3>Free and Pro</h3>
+      <p>Free gives you unlimited check-ins, the battery, the streak and the last 7 days of history.
+      Pro opens your full history and pattern insights: which activities line up with your good days
+      and your crashes, and what time of day you're reliably at your best. Nothing is deleted on free,
+      older check-ins are just tucked out of view.</p>
+      <p data-pro-off>On this copy everyone is on the free plan. Pro is part of the hosted version at energybattery.app.</p>
+
+      <p>Want the long version with pictures?
+      <a href="/guide" target="_blank" rel="noopener">Read the full guide</a>. It opens in a new tab
+      so you don't lose your place here.</p>
+    </div>
+    <div class="help-foot">
+      <button type="button" class="help-done" data-action="close-help">Got it</button>
+      <button type="button" class="help-tour" data-action="start-tour">Show me around</button>
+    </div>
+  </div>
+</div>
+
+<div id="pro-required-modal" class="pro-required-modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="pro-required-title">
+  <div class="pro-required-backdrop" data-action="close-pro-modal"></div>
+  <div class="pro-required-card">
+    <div class="pro-required-badge">PRO</div>
+    <h2 class="pro-required-title" id="pro-required-title">Pro feature</h2>
+    <p class="pro-required-desc" id="pro-required-desc">This feature is part of Pro.</p>
+    <p class="pro-required-price" id="pro-required-price" hidden></p>
+    <div class="pro-required-actions">
+      <button type="button" class="pro-required-cancel" data-action="close-pro-modal">Maybe later</button>
+      <a class="pro-required-cta" id="pro-required-cta" href="#" target="_blank" rel="noopener">Go Pro</a>
+    </div>
+  </div>
+</div>
+<script src="/focus-trap.js?v=20261002a" defer></script>
+<script src="/app.js?v=20261104a" defer></script>
+</body>
+</html>

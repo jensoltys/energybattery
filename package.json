@@ -1,0 +1,32 @@
+{
+  "name": "energy-battery",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Energy Battery: log how charged you feel through the day and see what charges and drains you. Cloudflare Worker + D1.",
+  "license": "AGPL-3.0-only",
+  "author": "Jen Soltys",
+  "homepage": "https://energybattery.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jensoltys/energybattery.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jensoltys/energybattery/issues"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "devDependencies": {
+    "wrangler": "4.156.0"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:setup:local": "wrangler d1 migrations apply energy-battery --local",
+    "db:setup:remote": "wrangler d1 migrations apply energy-battery --remote",
+    "test": "node --test --test-force-exit tests/*.test.mjs",
+    "test:security": "node scripts/test-security.mjs",
+    "predeploy": "node scripts/test-security.mjs"
+  }
+}
