@@ -7,17 +7,17 @@
 <title>Energy Battery</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%23E85F45'/><rect x='26' y='6' width='12' height='6' rx='2' fill='%23fff'/><rect x='16' y='11' width='32' height='42' rx='10' fill='%23fff'/><rect x='20' y='25' width='24' height='24' rx='8' fill='%23FFC247'/><path d='M38 15 L22 35 h9 l-3.5 13 16-20h-9z' fill='%23E85F45'/></svg>"/>
 <meta name="theme-color" content="#0F1A1C"/>
-<meta name="description" content="Log your energy through the day and watch your battery fill. Free to track. Pro adds pattern insights and your full history."/>
+<meta name="description" content="Log your energy through the day and watch your battery fill. Start with a free plan. Pro adds pattern insights and your full history."/>
 <meta property="og:type" content="website"/>
 <meta property="og:url" content="/"/>
 <meta property="og:title" content="Energy Battery: Track your energy. Find your spark."/>
-<meta property="og:description" content="Log your energy through the day and watch your battery fill. Free to track. Pro adds pattern insights and your full history."/>
+<meta property="og:description" content="Log your energy through the day and watch your battery fill. Start with a free plan. Pro adds pattern insights and your full history."/>
 <meta property="og:image" content="/og.png"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="Energy Battery: Track your energy. Find your spark."/>
-<meta name="twitter:description" content="Log your energy through the day and watch your battery fill. Free to track. Pro adds pattern insights and your full history."/>
+<meta name="twitter:description" content="Log your energy through the day and watch your battery fill. Start with a free plan. Pro adds pattern insights and your full history."/>
 <meta name="twitter:image" content="/og.png"/>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
@@ -79,8 +79,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 @keyframes meshFloat4{0%,100%{transform:translate(0,0)}50%{transform:translate(-8%,6%)}}
 
 /* AUTH */
-/* Boot screen: held up while the session cookie is checked or a hub token is
-   exchanged, so the logged-out card never paints over a sign-in on its way in. */
+/* Boot screen: held up while the session cookie is checked, so the logged-out card never paints over a sign-in on its way in. */
 .boot-screen{position:fixed;inset:0;z-index:101;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;text-align:center;background:var(--bg)}
 .boot-dot{width:12px;height:12px;border-radius:50%;background:var(--amber);animation:bootPulse 1.1s ease-in-out infinite}
 @keyframes bootPulse{0%,100%{transform:scale(.65);opacity:.4}50%{transform:scale(1);opacity:1}}
@@ -593,14 +592,13 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
      Left visible in the markup so the landing copy stays readable to anything that
      does not run scripts. The boot screen above covers it on first paint, and the
      boot gate in app.js decides within its first statements which of the two the
-     reader actually gets. Arriving here from the hub used to paint this whole card
-     for about half a second while hub-sso ran. -->
+     reader actually gets. -->
 <div class="auth-screen" id="auth-screen">
   <div class="auth-split">
-    <section class="auth-mobile-pitch" aria-label="What Energy Battery does">Log your energy through the day and watch your battery fill. Free to track. Pro adds the Patterns view and your full history.</section>
+    <section class="auth-mobile-pitch" aria-label="What Energy Battery does">Log your energy through the day and watch your battery fill. Start with a free plan. Pro adds the Patterns view and your full history.</section>
     <section class="auth-promo" aria-label="What Energy Battery does">
       <div class="promo-title" style="position:relative">Track your energy.<br>Find your spark.</div>
-      <div class="promo-sub" style="position:relative">Log your energy levels through the day and watch your battery fill up. Tracking is free. Pro adds the Patterns view that shows what charges and drains you, plus your full history.</div>
+      <div class="promo-sub" style="position:relative">Log your energy levels through the day and watch your battery fill up. Tracking is part of the free plan. Pro adds the Patterns view that shows what charges and drains you, plus your full history.</div>
       <div style="margin-top:24px;position:relative;display:flex;justify-content:center">
         <svg viewBox="0 0 140 210" width="88" height="132" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
 <defs>
@@ -909,7 +907,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   </aside>
 
   <footer class="app-footer">
-    <nav class="footer-legal" aria-label="More apps" style="margin-bottom:8px"><a href="https://jenbuiltit.com/app-hub" style="font-weight:700">Browse all apps in the App Hub</a></nav>
+    <nav class="footer-legal" aria-label="Credit" style="margin-bottom:8px"><a href="https://energybattery.app" target="_blank" rel="noopener noreferrer">Powered by Energy Battery</a></nav>
     <nav class="footer-legal" aria-label="Legal and affiliate">
       <a href="/legal/privacy" target="_blank" rel="noopener">Privacy</a>
       <span>&middot;</span>
@@ -953,31 +951,18 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 
 <!-- MODALS -->
 <!-- Delete Account re-prompt modal: a stolen JWT alone must not be enough to
-     wipe data. Password accounts type their password. App Hub accounts that
-     never set one type DELETE and the App Hub sign-in on this device is checked. -->
+     wipe data. The current password is asked for again. -->
 <div class="modal-overlay" id="delete-account-modal" role="dialog" aria-modal="true" aria-labelledby="delete-account-title">
   <div class="modal-box" style="max-width:380px">
     <h2 id="delete-account-title">Delete your account?</h2>
     <p style="color:var(--muted);font-size:.85rem;line-height:1.6;margin-bottom:14px">
       This deletes your account, every check-in, and every pattern. It can't be undone.
     </p>
-    <p data-pro-on hidden style="color:var(--muted);font-size:.8rem;line-height:1.6;margin-bottom:14px">
-      Paying for Pro? Deleting your Energy Battery account doesn't cancel it. Cancel Pro wherever you bought it.
-    </p>
     <div id="delete-pw-row">
       <div class="fg" style="margin-bottom:8px">
         <label class="flbl" for="delete-account-pw" style="font-size:.7rem">Current password</label>
         <input class="finput" type="password" id="delete-account-pw" name="delete-password" placeholder="Current password" autocomplete="current-password"/>
       </div>
-      <button class="auth-forgot" type="button" id="delete-use-hub-btn" data-pro-on hidden style="margin-bottom:12px;text-align:left">Signed up through the App Hub and never set a password?</button>
-    </div>
-    <div id="delete-hub-row" style="display:none">
-      <p style="color:var(--muted);font-size:.8rem;line-height:1.6;margin-bottom:10px">No password needed. We'll check the App Hub sign-in on this device instead. Type <strong>DELETE</strong> to confirm.</p>
-      <div class="fg" style="margin-bottom:8px">
-        <label class="flbl" for="delete-account-confirm" style="font-size:.7rem">Type DELETE</label>
-        <input class="finput" type="text" id="delete-account-confirm" name="delete-confirm" placeholder="DELETE" autocomplete="off" autocapitalize="characters" spellcheck="false"/>
-      </div>
-      <button class="auth-forgot" type="button" id="delete-use-pw-btn" style="margin-bottom:12px;text-align:left">I have a password</button>
     </div>
     <div id="delete-account-err" role="alert" style="color:var(--red-t);font-size:.8rem;margin-bottom:10px;display:none"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -1094,7 +1079,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
       Pro opens your full history and pattern insights: which activities line up with your good days
       and your crashes, and what time of day you're reliably at your best. Nothing is deleted on free,
       older check-ins are just tucked out of view.</p>
-      <p data-pro-off>On this copy everyone is on the free plan. Pro is part of the hosted version at energybattery.app.</p>
+      <p>On this copy everyone is on the free plan. Pro is part of the hosted version at energybattery.app.</p>
 
       <p>Want the long version with pictures?
       <a href="/guide" target="_blank" rel="noopener">Read the full guide</a>. It opens in a new tab
@@ -1112,8 +1097,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   <div class="pro-required-card">
     <div class="pro-required-badge">PRO</div>
     <h2 class="pro-required-title" id="pro-required-title">Pro feature</h2>
-    <p class="pro-required-desc" id="pro-required-desc">This feature is part of Pro.</p>
-    <p class="pro-required-price" id="pro-required-price" hidden></p>
+    <p class="pro-required-desc" id="pro-required-desc">This feature is part of Pro on the hosted version.</p>
     <div class="pro-required-actions">
       <button type="button" class="pro-required-cancel" data-action="close-pro-modal">Maybe later</button>
       <a class="pro-required-cta" id="pro-required-cta" href="#" target="_blank" rel="noopener">Go Pro</a>
@@ -1121,6 +1105,6 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   </div>
 </div>
 <script src="/focus-trap.js?v=20261002a" defer></script>
-<script src="/app.js?v=20261104a" defer></script>
+<script src="/app.js?v=20261125b" defer></script>
 </body>
 </html>

@@ -4,8 +4,7 @@
 
 // The tab (or day) the user was on before they hit refresh. history.state
 // survives a reload of the same entry, but init() replaceState()s an
-// auth-landing entry over it before enterApp() ever runs — and the hub-handoff
-// replaceState above can too — so it has to be captured HERE, at module load,
+// auth-landing entry over it before enterApp() ever runs, so it has to be captured HERE, at module load,
 // before anything touches history. Without it, refreshing anywhere but the
 // default tab bounced the user back to the default.
 const BOOT_VIEW = (history.state || {}).view || null;
@@ -21,35 +20,9 @@ const BOOT_ENTRY = (() => { const st = history.state || {}; return { authView: s
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-// 1) Cross-app Pro handoff from app-hub — MUST run first (captures ?hubpro=...)
-// -----------------------------------------------------------------------------
-let HUB_ARRIVAL = false;
-(function captureHubPro() {
-  const qs = new URLSearchParams(location.search);
-  const hubpro = qs.get('hubpro');
-  if (hubpro) {
-    // A fresh hubpro in the URL means the user just arrived via the hub and may
-    // be a different identity than whoever was last logged in here. Drop the
-    // local session so the bootstrap path will re-run hub-sso against the new
-    // JWT instead of silently keeping the previous user signed in. The session
-    // is an HttpOnly cookie now, so "drop" means: skip the /api/me check and
-    // let hub-sso replace the cookie. Any pre-cookie localStorage token goes too.
-    HUB_ARRIVAL = true;
-    try { localStorage.removeItem('eb_token'); } catch {}
-    localStorage.setItem('hub_pro_jwt', hubpro);
-    qs.delete('hubpro');
-    const newQs = qs.toString();
-    history.replaceState({}, '', location.pathname + (newQs ? '?' + newQs : ''));
-  }
-})();
-
-// -----------------------------------------------------------------------------
 // 1.2) Boot gate.
 // #auth-screen is hidden in the markup, so the logged-out card cannot paint over
-// a session that is seconds from resolving. Arriving from the hub with ?hubpro=
-// used to show the Log In / Sign Up tabs, the email field and the password field
-// for about half a second while hub-sso ran, on the one journey whose whole
-// promise is that you never see a second sign-in.
+// a session that is seconds from resolving.
 // The call is made here, synchronously, before any network request.
 // -----------------------------------------------------------------------------
 function showAuthScreen() {
@@ -68,30 +41,16 @@ function hideBootScreen() {
 // the boot screen for one round trip.
 (function bootGate() {
   const msg = document.getElementById('boot-msg');
-  if (msg) msg.textContent = HUB_ARRIVAL ? 'Signing you in from the hub…' : 'Opening your battery…';
+  if (msg) msg.textContent = 'Opening your battery…';
 })();
 
 // -----------------------------------------------------------------------------
 // 1.5) Pro-required modal. Every Go Pro link opens it.
 // -----------------------------------------------------------------------------
-const PRO_FROM = 'battery';
-// Starts false so nothing sells Pro before /api/pro-status answers. It turns true
-// only when this copy has a Pro hub connected (pro_available:true).
-let proAvailable=false;
-// From the server's UPGRADE_URL and PRO_PRICE_TEXT (only sent when a hub is connected).
-let proUpgradeUrl='';
-let proPriceText='';
 // The feedback button shows only when the server has FEEDBACK_WEBHOOK_URL set.
 let feedbackAvailable=false;
 let feedbackWanted=false;
-function applyProAvail(){
-  document.querySelectorAll('[data-pro-on]').forEach(el=>{el.hidden=!proAvailable;});
-  document.querySelectorAll('[data-pro-off]').forEach(el=>{el.hidden=proAvailable;});
-  const price=document.getElementById('pro-required-price');
-  if(price){price.textContent=proPriceText;price.hidden=!(proAvailable&&proPriceText);}
-}
-// Every Go Pro link opens the Pro popup. With a hub it carries the upgrade link,
-// without one it explains that Pro lives on the hosted version.
+// Every Go Pro link opens the Pro popup, which explains that Pro lives on the hosted version.
 document.addEventListener('click',e=>{
   const b=e.target.closest&&e.target.closest('[data-go-pro]');
   if(!b)return;
@@ -103,18 +62,16 @@ const PRO_FEATURE_COPY = {
   'pattern-insights': { title: 'Pattern insights', desc: 'See what charges and drains your energy across days, times, and activities.' },
 };
 function showProRequired(feature) {
-  let copy = PRO_FEATURE_COPY[feature] || { title: 'Pro feature', desc: 'This is part of Pro.' };
-  // This copy has no Pro hub: Pro only exists on the hosted version, so say that plainly.
-  if (!proAvailable) copy = { title: copy.title, desc: "Pro isn't available on this copy of Energy Battery. It's part of the hosted version at energybattery.app. A battery there starts fresh, nothing moves over from here." };
-  const url = !proAvailable ? 'https://energybattery.app' : !proUpgradeUrl ? '#' : proUpgradeUrl + (feature ? (proUpgradeUrl.includes('?') ? '&' : '?') + 'feature=' + encodeURIComponent(feature) : '');
+  // Pro only exists on the hosted version, so say that plainly.
+  const copy = { title: (PRO_FEATURE_COPY[feature] || { title: 'Pro feature' }).title, desc: "Pro isn't available on this copy of Energy Battery. It's part of the hosted version at energybattery.app. A battery there starts fresh, nothing moves over from here." };
+  const url = 'https://energybattery.app';
   const modal = document.getElementById('pro-required-modal');
   if (!modal) return;
   modal.querySelector('#pro-required-title').textContent = copy.title;
   modal.querySelector('#pro-required-desc').textContent = copy.desc;
   const cta = modal.querySelector('#pro-required-cta');
   cta.href = url;
-  cta.textContent = proAvailable ? 'Go Pro' : 'Open energybattery.app';
-  cta.hidden = proAvailable && !proUpgradeUrl;
+  cta.textContent = 'Open energybattery.app';
   openOverlay('pro-required-modal');
 }
 function closeProRequired(fromHistory) { closeOverlay('pro-required-modal', fromHistory); }
@@ -556,8 +513,7 @@ function syncStatus(state){
 async function api(path,opts={}){
   syncStatus('syncing');
   try{
-    const hubPro=localStorage.getItem('hub_pro_jwt');
-    const r=await fetch(API+path,{...opts,credentials:'same-origin',headers:{'Content-Type':'application/json',...(hubPro?{'X-Hub-Pro':hubPro}:{}),...opts.headers}});
+    const r=await fetch(API+path,{...opts,credentials:'same-origin',headers:{'Content-Type':'application/json',...opts.headers}});
     const d=await r.json().catch(()=>({}));
     // Auth endpoints handle their own 401s (wrong password must show an inline
     // error, not silently reload the page). Only treat 401 as an expired or
@@ -597,7 +553,6 @@ function sessionEnded(){
   // The dead cookie is HttpOnly, so only the server can clear it.
   fetch(API+'/api/auth/logout',{method:'POST',credentials:'same-origin',keepalive:true}).catch(()=>{});
   try{localStorage.removeItem('eb_token');}catch{}
-  localStorage.removeItem('hub_pro_jwt');
   hideFeedbackWidget();
   document.getElementById('app-outer').style.display='none';
   document.getElementById('auth-screen').style.display='';
@@ -620,51 +575,6 @@ let proFiltered=false;
 let stats={current_streak:0,total_checkins:0};
 let isProUser=false;
 
-// ---------------------------------------------------------------------------
-// Hub Pro token refresh. Stripe renewals cap the hub JWT's exp at the billing
-// period end, so a renewing subscriber's cached token dies right when they
-// renew. On-demand only (init + one retry on a gated 402), never polled.
-// ---------------------------------------------------------------------------
-let proRefreshTried=false;   // at most one refresh+retry per gated 402 session
-let proPaused=false;         // previously-Pro token failed to refresh
-function decodeJwtPayload(t){
-  try{
-    const p=String(t).split('.')[1];
-    const s=p.replace(/-/g,'+').replace(/_/g,'/');
-    return JSON.parse(atob(s+'='.repeat((4-s.length%4)%4)));
-  }catch{return null;}
-}
-// Returns 'refreshed' | 'invalid' | 'error'. On 'error' (network/429/5xx) we
-// leave the stored token alone — current behavior, nothing gets worse.
-async function refreshHubToken(){
-  const t=localStorage.getItem('hub_pro_jwt');
-  if(!t)return 'error';
-  try{
-    const r=await fetch(API+'/api/pro-refresh',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});
-    if(r.status===429||r.status>=500)return 'error';
-    const d=await r.json().catch(()=>null);
-    if(d&&d.valid===true&&typeof d.token==='string'){localStorage.setItem('hub_pro_jwt',d.token);proPaused=false;return 'refreshed';}
-    if(d&&d.valid===false){
-      // Hub says no entitlement: drop the dead token, fall back to free.
-      const payload=decodeJwtPayload(t);
-      const wasPro=!!(payload&&payload.pro_until)||!!localStorage.getItem('eb_was_pro');
-      localStorage.removeItem('hub_pro_jwt');
-      proPaused=wasPro;
-      return 'invalid';
-    }
-    return 'error';
-  }catch{return 'error';}
-}
-// Init-time check: if the stored hub token is expired or within 60s of it,
-// refresh before hub-sso / pro-status ever see it.
-async function ensureFreshHubToken(){
-  const t=localStorage.getItem('hub_pro_jwt');
-  if(!t)return;
-  const payload=decodeJwtPayload(t);
-  const exp=payload&&typeof payload.exp==='number'?payload.exp:0;
-  if(exp-Math.floor(Date.now()/1000)>60)return; // still fresh
-  await refreshHubToken();
-}
 async function loadCheckins(){
   const data=await api('/api/checkins?days=90');
   // Backend returns {items, pro_filtered, current_streak, total_checkins}
@@ -696,19 +606,9 @@ async function loadPatterns(){
     patterns=await api('/api/patterns');
   }catch(e){
     if(e.status===402||/Pro required/i.test(e.message||'')){
-      // Pro-rejected WITH a token present (this path only runs for users we
-      // believed were Pro): one refresh + retry, then stop.
-      if(e.status===402&&localStorage.getItem('hub_pro_jwt')&&!proRefreshTried){
-        proRefreshTried=true;
-        if(await refreshHubToken()==='refreshed'){
-          try{patterns=await api('/api/patterns');return;}
-          catch(e2){if(e2.status!==402&&!/Pro required/i.test(e2.message||''))throw e2;}
-        }
-      }
       // Still gated: treat as free for the rest of the session so no further
       // expected-402 calls fire (free users must never call /api/patterns).
       isProUser=false;
-      proPaused=true;
       patterns=lockedPatterns();
       hydrateProStatus();
     }
@@ -718,22 +618,15 @@ async function loadPatterns(){
 
 async function hydrateProStatus(){
   try{
-    const hubPro=localStorage.getItem('hub_pro_jwt');
-    const r=await fetch(API+'/api/pro-status',{credentials:'same-origin',headers:{...(hubPro?{'X-Hub-Pro':hubPro}:{})}});
+    const r=await fetch(API+'/api/pro-status',{credentials:'same-origin'});
     const data=await r.json();
     isProUser=!!data.is_pro;
-    proAvailable=data.pro_available===true;
-    proUpgradeUrl=(proAvailable&&typeof data.upgrade_url==='string'&&/^https?:\/\//i.test(data.upgrade_url))?data.upgrade_url:'';
-    proPriceText=(proAvailable&&typeof data.pro_price_text==='string')?data.pro_price_text:'';
-    applyProAvail();
     feedbackAvailable=data.feedback_available===true;
     if(feedbackAvailable&&feedbackWanted)showFeedbackWidget();
     const proRegion=document.getElementById('pro-badge-region');
     const unlockBtn=document.getElementById('unlock-pro-btn');
     if(!proRegion||!unlockBtn)return;
     if(data.is_pro){
-      proPaused=false;
-      try{localStorage.setItem('eb_was_pro','1');}catch{}
       proRegion.classList.add('show');
       unlockBtn.style.display='none';
       if(data.pro_until){
@@ -741,7 +634,7 @@ async function hydrateProStatus(){
       }
     }else{
       proRegion.classList.remove('show');
-      unlockBtn.style.display=(proAvailable&&!proUpgradeUrl)?'none':'inline-block';
+      unlockBtn.style.display='inline-block';
     }
   }catch(e){console.error('Pro hydrate failed:',e);}
 }
@@ -920,9 +813,6 @@ async function authSubmit(e){
     }
     const d=await api(`/api/auth/${authMode}`,{method:'POST',body:JSON.stringify(body)});
     if(d.awaiting_verification)pendingVerifyPw=body.password;
-    // The login response may carry a hub Pro token (Pro follows the account,
-    // not the browser) — same localStorage slot as the ?hubpro= hand-off.
-    if(d&&d.hub_pro_token)localStorage.setItem('hub_pro_jwt',d.hub_pro_token);
     if(d.user){currentUser=d.user;carryGuestOnEntry=true;enterApp(authMode==='signup');}
     else if(d.awaiting_verification){showCodeBox(d.email||email,undefined,false,d.email_sent===false);}
     else{const s=document.getElementById('auth-suc')||errEl;s.textContent=d.message||'If that email is new, check your inbox for a verification code.';s.style.display='block';}
@@ -944,7 +834,6 @@ async function submitCode(){
   try{
     const d=await api('/api/auth/verify-code',{method:'POST',body:JSON.stringify({email:pendingVerifyEmail,code,password})});
     pendingVerifyPw='';
-    if(d&&d.hub_pro_token)localStorage.setItem('hub_pro_jwt',d.hub_pro_token);
     if(d.user){currentUser=d.user;carryGuestOnEntry=true;enterApp(true);}
   }catch(e){
     // Wrong password: drop the remembered one and show the field so they can retype it.
@@ -979,17 +868,13 @@ function getResetToken(){
 async function confirmReset(){
   const pw=document.getElementById('reset-pw').value;const resetToken=getResetToken();
   try{const d=await api('/api/auth/reset-confirm',{method:'POST',body:JSON.stringify({token:resetToken,password:pw})});
-    if(d&&d.hub_pro_token)localStorage.setItem('hub_pro_jwt',d.hub_pro_token);
     currentUser=d.user;document.getElementById('reset-screen').style.display='none';enterApp(false);
   }catch(e){const el=document.getElementById('reset-err');el.textContent=e.message;el.style.display='block';}
 }
-// The hub Pro token is a credential too: init() exchanges it for a session
-// through hub-sso, so leaving it behind meant "log out" silently logged the
-// user straight back in on the next load.
 function logout(){currentUser=null;
   clearGuestCheckin();
   try{localStorage.removeItem('eb_token');}catch{}
-  localStorage.removeItem('hub_pro_jwt');hideFeedbackWidget();
+  hideFeedbackWidget();
   // The server clears the HttpOnly cookie (the page can't). keepalive lets
   // it finish even if the user closes the tab right after. The reload waits
   // for it: reloading first would let the boot /api/me see the old cookie
@@ -1189,8 +1074,7 @@ function renderPatterns(){
   const el=document.getElementById('patterns-content');
   if(!patterns){el.innerHTML='<div class="empty-state">loading patterns...</div>';return;}
   if(patterns.locked){
-    const paused=proPaused?'<div style="font-size:.8rem;color:var(--amber-t);margin-bottom:.75rem">Pro paused? Open the app you bought Pro from and relaunch to refresh.</div>':'';
-    el.innerHTML=glowNoticedCard(true)+'<div class="card" style="text-align:center;padding:2rem 1rem"><div class="pro-tag" style="margin-bottom:.6rem">&#9733; Pro</div><div style="font-weight:700;font-size:1rem;margin-bottom:.5rem">Pattern Insights is a Pro feature</div><div style="font-size:.85rem;color:var(--muted);line-height:1.6;margin-bottom:.5rem">See what charges and drains your energy across days, times, and activities.</div>'+paused+'<a href="#" data-go-pro="pattern-insights" class="unlock-pro-btn">Go Pro</a></div>';return;
+    el.innerHTML=glowNoticedCard(true)+'<div class="card" style="text-align:center;padding:2rem 1rem"><div class="pro-tag" style="margin-bottom:.6rem">&#9733; Pro</div><div style="font-weight:700;font-size:1rem;margin-bottom:.5rem">Pattern Insights is a Pro feature</div><div style="font-size:.85rem;color:var(--muted);line-height:1.6;margin-bottom:.5rem">See what charges and drains your energy across days, times, and activities.</div><div style="margin-bottom:1rem"></div><a href="#" data-go-pro="pattern-insights" class="unlock-pro-btn">Go Pro</a></div>';return;
   }
   if(patterns.total_checkins<1){el.innerHTML='<div class="empty-state">log a few check-ins first.<br>patterns need data!<br>'+FIRST_CHECKIN_BTN+'</div>';return;}
   const tier=getTier(patterns.current_streak);
@@ -1589,43 +1473,25 @@ async function exportMyData(btn){
 
 // Delete Account: open modal that requires a fresh proof before proceeding.
 // A stolen JWT alone must not be enough to wipe data with two confirm() clicks.
-// Password accounts type their password. App Hub accounts that never set one
-// switch to "type DELETE" and the hub token on this device is checked instead.
-let deleteViaHub=false;
-function setDeleteMode(viaHub){
-  deleteViaHub=!!viaHub;
-  document.getElementById('delete-pw-row').style.display=deleteViaHub?'none':'block';
-  document.getElementById('delete-hub-row').style.display=deleteViaHub?'block':'none';
+function setDeleteMode(){
   const err=document.getElementById('delete-account-err');
   if(err){err.textContent='';err.style.display='none';}
-  const f=document.getElementById(deleteViaHub?'delete-account-confirm':'delete-account-pw');
+  const f=document.getElementById('delete-account-pw');
   if(f)f.focus();
 }
 function confirmDeleteAccount(){
   const pw=document.getElementById('delete-account-pw');
-  const conf=document.getElementById('delete-account-confirm');
   if(pw)pw.value='';
-  if(conf)conf.value='';
   openOverlay('delete-account-modal');
-  setTimeout(()=>setDeleteMode(false),0);
+  setTimeout(()=>setDeleteMode(),0);
 }
 async function performDeleteAccount(){
   const err=document.getElementById('delete-account-err');
   const btn=document.getElementById('delete-account-confirm-btn');
   err.style.display='none';
-  let body;
-  if(deleteViaHub){
-    const typed=document.getElementById('delete-account-confirm').value.trim();
-    if(typed!=='DELETE'){err.textContent='Type DELETE to confirm.';err.style.display='block';return;}
-    await ensureFreshHubToken();
-    const hubJwt=localStorage.getItem('hub_pro_jwt');
-    if(!hubJwt){err.textContent="There's no App Hub sign-in on this device. Open the App Hub, launch Energy Battery from there, then try again. Or use Forgot password on the sign-in screen to set a password.";err.style.display='block';return;}
-    body={hub_pro_jwt:hubJwt,confirm:'DELETE'};
-  }else{
-    const pw=document.getElementById('delete-account-pw').value;
-    if(!pw||pw.length<10){err.textContent='Enter your password to confirm.';err.style.display='block';return;}
-    body={current_password:pw};
-  }
+  const pw=document.getElementById('delete-account-pw').value;
+  if(!pw||pw.length<10){err.textContent='Enter your password to confirm.';err.style.display='block';return;}
+  const body={current_password:pw};
   btn.disabled=true;
   try{
     await api('/api/auth/account',{method:'DELETE',body:JSON.stringify(body)});
@@ -1641,7 +1507,7 @@ async function performDeleteAccount(){
 function closeModal(id, fromHistory){ closeOverlay(id, fromHistory); }
 
 // -----------------------------------------------------------------------------
-// 3) Feedback widget — login-only, lazy-loaded (mirrors App Hub).
+// 3) Feedback widget: login-only, lazy-loaded.
 //    No static <script> tag: the logged-out page never shows a feedback button.
 //    First call injects the script; later calls just re-show the FAB.
 // -----------------------------------------------------------------------------
@@ -1809,10 +1675,6 @@ function wireEvents() {
   if (cancelDeleteBtn) cancelDeleteBtn.addEventListener('click', () => closeOverlay('delete-account-modal'));
   const confirmDeleteBtn = document.getElementById('delete-account-confirm-btn');
   if (confirmDeleteBtn) confirmDeleteBtn.addEventListener('click', performDeleteAccount);
-  const useHubBtn = document.getElementById('delete-use-hub-btn');
-  if (useHubBtn) useHubBtn.addEventListener('click', () => setDeleteMode(true));
-  const usePwBtn = document.getElementById('delete-use-pw-btn');
-  if (usePwBtn) usePwBtn.addEventListener('click', () => setDeleteMode(false));
 
   // ---- Onboarding ----
   const onboardBtn = document.getElementById('onboard-go-btn');
@@ -2016,29 +1878,14 @@ function maybeOfferTour(){
     showGuest(BOOT_ENTRY.guestView === 'try' || !pendingSample ? 'try' : 'result', { replace: true });
   }
   try {
-  // If the stored hub Pro token is expired (or about to be), trade it for a
-  // fresh one BEFORE hub-sso and pro-status ever see it. Renewal fix: Stripe
-  // renewals expire the cached token even though the user is still paying.
-  await ensureFreshHubToken();
-  // Who is signed in? One GET /api/me (the cookie is HttpOnly). A fresh
-  // ?hubpro= arrival skips it: hub-sso below decides who this is.
+  // Who is signed in? One GET /api/me (the cookie is HttpOnly).
   let bootErr = null;
-  if (!HUB_ARRIVAL) {
+  {
     // Pre-cookie builds kept the login token in localStorage. It's dead
     // now (the server only reads the cookie), so just wipe any leftover.
     try { localStorage.removeItem('eb_token'); } catch {}
     try { currentUser = await api('/api/me'); }
     catch (err) { if (!err.sessionEnded) bootErr = err.message; }
-  }
-  // Hub SSO: if hub passed us a Pro JWT and we have no Battery session, exchange it.
-  if (!currentUser && !bootErr) {
-    const hubPro = localStorage.getItem('hub_pro_jwt');
-    if (hubPro) {
-      try {
-        const r = await fetch(API + '/api/auth/hub-sso', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hub_pro_jwt: hubPro }) });
-        if (r.ok) { const d = await r.json(); currentUser = d.user; }
-      } catch (err) { console.error('hub-sso:', err.message); }
-    }
   }
   if (currentUser) { try { await enterApp(false); } catch { logout(); } }
   else if (bootErr) {
@@ -2055,7 +1902,7 @@ function maybeOfferTour(){
   }
 })();
 
-// ── Show/hide password toggle (uniform across the hub + all 5 apps) ─────────
+// ── Show/hide password toggle ─────────
 (function initPwEyes(){
   var EYE='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
   var EYEOFF='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';

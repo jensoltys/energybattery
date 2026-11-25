@@ -79,7 +79,6 @@ nav.muted a{display:inline-block;padding:12px 6px;margin:0 -6px}
 <ul>
   <li>To create and secure your account (legal basis: contract).</li>
   <li>To save your check-ins so you can review your energy patterns over time (legal basis: contract).</li>
-  <li>To verify Pro status if this site connects a Pro hub (legal basis: contract).</li>
   <li>To prevent fraud, abuse, and credential stuffing (legal basis: legitimate interest).</li>
   <li>To send the emails your account needs, like email verification and password resets (legal basis: contract). Energy Battery doesn't send marketing email.</li>
 </ul>
@@ -90,20 +89,17 @@ nav.muted a{display:inline-block;padding:12px 6px;margin:0 -6px}
   <li><strong>Cloudflare</strong> hosts the Service and our database (Cloudflare Workers + D1).</li>
   <li><strong>Resend</strong> sends transactional emails (verify-your-email, password reset).</li>
   <li><strong>Optional webhooks:</strong> if this site turns them on, a signup notice (your email address and the app's name), short server-error reports (the page address, the error code and message, never your email or check-ins), and anything you send with the Feedback button (your message, the page, your browser's user-agent string and, if you enter it, your email) go to a webhook the operator runs. Nothing is sent from the Feedback button unless you press Send.</li>
-  <li><strong>A Pro hub</strong> (only if this site connects one) issues a signed entitlement token if you have a Pro subscription. Energy Battery verifies that token itself, and no payment details ever reach this Service. When you log in, Energy Battery sends your email address to the App Hub to ask whether you have Pro, so Pro follows your account to a new device.</li>
   <li><strong>Google Fonts:</strong> the Service loads its fonts from Google (fonts.googleapis.com and fonts.gstatic.com). When your browser fetches them, Google receives your IP address and basic browser details, the same as for any website that uses Google Fonts.</li>
   <li><strong>Cloudflare Web Analytics</strong> counts page views, if this site turns it on. It's privacy-friendly page-view counting: Cloudflare says it doesn't use cookies or local storage and doesn't fingerprint visitors (<a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener noreferrer">cloudflare.com/web-analytics</a>).</li>
 </ul>
 <p>We do not sell your personal data. We do not share your data with advertisers. We do not transfer your data to third parties for their own marketing.</p>
 
-<h2>4. Cross-app Pro verification</h2>
-<p>If this site connects a Pro hub and you have an active Pro subscription there, the Hub issues your browser a short-lived signed JWT. Energy Battery verifies that JWT locally using a shared secret to confirm your Pro status (which unlocks the full Patterns view and 90-day history). The only data passed in that token is your email address and the date your Pro access runs through. No payment data, no credit card information, no profile data is shared with Energy Battery.</p>
+<h2>4. Paid plans</h2>
+<p>This site has no paid plan and takes no payments. (EDIT THIS SECTION if you add one.)</p>
 
 <h2>5. Cookies and local storage</h2>
 <p>To keep you logged in, we set one cookie named <code>eb_session</code>. It holds a signed login token, it's marked HttpOnly so scripts on the page can't read it, it's only sent to Energy Battery over HTTPS, and it lasts 30 days or until you log out, whichever comes first. We don't keep your login in browser local storage anymore. Energy Battery also keeps a few items in your browser's storage so the app works:</p>
 <ul>
-  <li><code>hub_pro_jwt</code> (localStorage): your Pro entitlement token from the App Hub, only if you have Pro. It's removed when you log out.</li>
-  <li><code>eb_was_pro</code> (localStorage): a flag that remembers you had Pro, so the app can tell you if Pro lapses.</li>
   <li><code>eb_timezone</code> (localStorage): your timezone, so dates show correctly. Your timezone is also saved to your account.</li>
   <li><code>eb_milestones</code> (localStorage): which milestone celebrations you've already seen, so they don't repeat.</li>
   <li><code>eb_tour_done</code> (localStorage): a flag that you've finished or skipped the welcome tour.</li>
@@ -125,7 +121,7 @@ nav.muted a{display:inline-block;padding:12px 6px;margin:0 -6px}
 <ul>
   <li>Access the personal data we hold about you (open Account settings in the app footer and use Export my data, or request via email)</li>
   <li>Correct inaccurate data (change your timezone or the areas you track in Account settings in the app footer, and for email changes contact support)</li>
-  <li>Delete your account and your data (open Account settings in the app footer and use Delete my account). You'll confirm with your current password, or, if you signed up through the App Hub and never set a password, by typing DELETE while signed in to the App Hub on that device.</li>
+  <li>Delete your account and your data (open Account settings in the app footer and use Delete my account). You'll confirm with your current password.</li>
   <li>Export a copy of your data in a portable format (GET <code>/api/account/export</code> while authenticated, or request via email)</li>
   <li>Opt out of any sale or sharing of personal information, although we do not sell or share personal information for cross-context behavioral advertising (see <a href="/legal/do-not-sell">Do Not Sell or Share My Personal Information</a>)</li>
   <li>Lodge a complaint with your local data protection authority</li>

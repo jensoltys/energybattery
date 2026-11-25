@@ -1,40 +1,40 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 the Energy Battery authors. See LICENSE.
-// A copy with no Pro hub must say so, so the page never sells Pro that can't unlock here.
+// A copy stands on its own: no outside sign-in, no Pro it can't deliver, no setup traps.
 // Run: npm test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import worker from '../src/worker.js';
 
+const SECRET = 'test-secret-test-secret-test-secret-1234';
+const ORIGIN = 'https://copy.example.com';
 const DB = { prepare() { const st = { bind() { return st; }, async first() { return null; }, async run() { return { meta: {} }; }, async all() { return { results: [] }; } }; return st; }, async batch(s) { return s.map(() => ({ results: [] })); } };
-const get = (env) => worker.fetch(new Request('https://copy.example.com/api/pro-status'), { JWT_SECRET: 'test-secret-test-secret-test-secret-1234', DB, ...env }, { waitUntil() {} }).then(r => r.json());
-const HUB = 'hub-secret-hub-secret-hub-secret-12';
+const get = (env, headers = {}) => worker.fetch(new Request(ORIGIN + '/api/pro-status', { headers }), { JWT_SECRET: SECRET, DB, ...env }, { waitUntil() {} }).then(r => r.json());
+const b64 = (s) => Buffer.from(s).toString('base64url');
+async function hs256(payload, secret) {
+  const data = `${b64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${b64(JSON.stringify(payload))}`;
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));
+  return `${data}.${Buffer.from(sig).toString('base64url')}`;
+}
+const exp = () => Math.floor(Date.now() / 1000) + 3600;
 
-test('pro-status: no hub connected = pro_available false, everyone on the free plan', async () => {
-  const d = await get({});
-  assert.equal(d.pro_available, false);
+// Names the hosted site uses for its own sign-in hand-off, spelled in pieces so a search of this repo for
+// them finds nothing at all.
+const HUB = 'hub';
+const OLD_ROUTES = [
+  ['POST', `/api/auth/${HUB}-sso`], ['GET', `/api/auth/${HUB}/start`], ['GET', `/api/auth/${HUB}/callback?code=abc&state=abc`],
+  ['POST', `/api/auth/${HUB}/finish`], ['POST', '/api/pro-refresh'], ['GET', '/api/service/recap?email=a@example.com&start=2026-01-01&end=2026-01-31'],
+];
+const OLD_NAMES = new RegExp([`${HUB}pro`, `${HUB}_pro`, `${HUB}-sso`, `${HUB}-handoff`, `x-${HUB}`, `app-${HUB}`, `${HUB}_jwt`, `${HUB}_lookup`, `app ${HUB}`, `pro ${HUB}`, 'entitlement token'].join('|'), 'i');
+
+test('pro-status: everyone is on the free plan, whatever a visitor sends', async () => {
+  assert.equal((await get({})).is_pro, false);
+  const forged = await hs256({ v: 1, email: 'a@example.com', pro_until: '2099-01-01T00:00:00Z', iat: exp() - 3600, exp: exp() }, SECRET);
+  const d = await get({ [`${HUB.toUpperCase()}_JWT_SECRET`]: SECRET }, { [`X-${HUB}-Pro`]: forged });
   assert.equal(d.is_pro, false);
-});
-
-test('pro-status: hub connected = pro_available true', async () => {
-  assert.equal((await get({ HUB_JWT_SECRET: HUB })).pro_available, true);
-});
-
-test('pro-status: no hub = no upgrade link or price, even if UPGRADE_URL is set', async () => {
-  const d = await get({ UPGRADE_URL: 'https://pay.example.com/pro', PRO_PRICE_TEXT: '$5/mo' });
-  assert.equal(d.upgrade_url, null);
-  assert.equal(d.pro_price_text, null);
-});
-
-test('pro-status: hub + UPGRADE_URL + PRO_PRICE_TEXT come back as set', async () => {
-  const d = await get({ HUB_JWT_SECRET: HUB, UPGRADE_URL: 'https://pay.example.com/pro', PRO_PRICE_TEXT: '$5 a month' });
-  assert.equal(d.upgrade_url, 'https://pay.example.com/pro');
-  assert.equal(d.pro_price_text, '$5 a month');
-});
-
-test('pro-status: a non-http UPGRADE_URL is ignored', async () => {
-  assert.equal((await get({ HUB_JWT_SECRET: HUB, UPGRADE_URL: 'javascript:alert(1)' })).upgrade_url, null);
+  assert.equal('upgrade_url' in d, false);
 });
 
 test('pro-status: feedback_available follows FEEDBACK_WEBHOOK_URL', async () => {
@@ -42,38 +42,68 @@ test('pro-status: feedback_available follows FEEDBACK_WEBHOOK_URL', async () => 
   assert.equal((await get({ FEEDBACK_WEBHOOK_URL: 'https://hooks.example.com/fb' })).feedback_available, true);
 });
 
-test('static page fails closed: no paid upgrade link or price until the server says Pro is available', () => {
+test('the hosted site sign-in hand-off, refresh and recap routes are gone', async () => {
+  const userDB = { ...DB, prepare(sql) { const st = { bind() { return st; }, async first() { return /FROM users/.test(sql) ? { token_version: 0, email: 'a@example.com', email_verified: 1 } : null; }, async run() { return { meta: { changes: 1 } }; }, async all() { return { results: [] }; } }; return st; } };
+  const cookie = 'eb_session=' + await hs256({ sub: 'u1', tv: 0, exp: exp() }, SECRET);
+  const forged = await hs256({ v: 1, email: 'victim@example.com', pro_until: '2099-01-01T00:00:00Z', exp: exp() }, SECRET);
+  const call = (method, path, headers) => worker.fetch(new Request(ORIGIN + path, { method, headers: { Origin: ORIGIN, 'Content-Type': 'application/json', ...headers }, body: method === 'POST' ? JSON.stringify({ [`${HUB}_pro_jwt`]: forged, token: forged }) : undefined }),
+    { JWT_SECRET: SECRET, [`${HUB.toUpperCase()}_JWT_SECRET`]: SECRET, DB: userDB }, { waitUntil() {} });
+  for (const [method, path] of OLD_ROUTES) {
+    // Signed out: nobody is signed in, redirected or handed a cookie.
+    const out = await call(method, path, { 'X-Internal-Secret': SECRET });
+    assert.equal(out.status, 401, `${method} ${path} signed out`);
+    assert.equal(out.headers.get('Set-Cookie'), null, path);
+    assert.equal(out.headers.get('Location'), null, path);
+    // Signed in: the route does not exist.
+    const inn = await call(method, path, { Cookie: cookie });
+    assert.equal(inn.status, 404, `${method} ${path} signed in`);
+    assert.equal(inn.headers.get('Set-Cookie'), null, path);
+  }
+});
+
+test('none of the hosted site hand-off code or links are in the app', () => {
+  const files = ['../src/worker.js', ...readdirSync(new URL('../src/lib/', import.meta.url)).map(f => '../src/lib/' + f),
+    ...readdirSync(new URL('../public/', import.meta.url)).filter(f => /\.(js|html|css)$/.test(f)).map(f => '../public/' + f),
+    ...readdirSync(new URL('../public/legal/', import.meta.url)).map(f => '../public/legal/' + f),
+    '../README.md', '../wrangler.toml', '../.dev.vars.example'];
+  assert.ok(files.length > 8);
+  for (const f of files) {
+    const text = readFileSync(new URL(f, import.meta.url), 'utf8');
+    assert.doesNotMatch(text, OLD_NAMES, f);
+    assert.doesNotMatch(text, /location\.search[^\n]{0,80}pro/i, f);
+  }
+});
+
+test('the page sells nothing: every Go Pro opens the note about the hosted version', () => {
   const html = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
-  assert.doesNotMatch(html, /jenbuiltit\.com\/app-hub\/upgrade/);
-  assert.match(html, /class="pro-required-price" id="pro-required-price" hidden><\/p>/);
-  assert.doesNotMatch(html, /\$7\/mo|all five/);
+  assert.match(html, /<a id="unlock-pro-btn" class="unlock-pro-btn" href="#" data-go-pro=""/);
+  assert.doesNotMatch(html, /\$7\/mo|all five|class="pro-required-price"/);
   const js = readFileSync(new URL('../public/app.js', import.meta.url), 'utf8');
-  assert.match(js, /let proAvailable=false;/);
-  assert.doesNotMatch(js, /jenbuiltit\.com\/app-hub\/upgrade|\$7\/mo|all five/);
-});
-
-test('402 upgrade_url follows UPGRADE_URL, and is left out when blank', () => {
+  assert.match(js, /Pro isn't available on this copy of Energy Battery/);
+  assert.match(js, /cta\.textContent = 'Open energybattery\.app'/);
+  assert.doesNotMatch(js, /\$7\/mo|all five/);
   const src = readFileSync(new URL('../src/worker.js', import.meta.url), 'utf8');
-  assert.doesNotMatch(src, /jenbuiltit\.com/);
-  assert.equal((src.match(/upgrade_url: upgradeUrl\(/g) || []).length, 2);
+  assert.doesNotMatch(src, /upgrade_url|checkout/i);
 });
 
-test('hub secrets shorter than 32 characters count as not set', async () => {
-  const realError = console.error; console.error = () => {};
-  try {
-    const d = await get({ HUB_JWT_SECRET: 'abc', UPGRADE_URL: 'https://pay.example.com/pro' });
-    assert.equal(d.pro_available, false);
-    assert.equal(d.upgrade_url, null);
-    const sso = await worker.fetch(new Request('https://copy.example.com/api/auth/hub-sso', { method: 'POST', headers: { Origin: 'https://copy.example.com', 'Content-Type': 'application/json' }, body: JSON.stringify({ hub_pro_jwt: 'a.b.c' }) }),
-      { JWT_SECRET: 'test-secret-test-secret-test-secret-1234', HUB_JWT_SECRET: 'abc', DB }, { waitUntil() {} });
-    assert.equal(sso.status, 404);
-  } finally { console.error = realError; }
+test('Pro-only routes stay locked with a plain 402', async () => {
+  const userDB = { ...DB, prepare(sql) { const st = { bind() { return st; }, async first() { return /FROM users/.test(sql) ? { token_version: 0 } : null; }, async run() { return { meta: { changes: 1 } }; }, async all() { return { results: [] }; } }; return st; } };
+  const cookie = 'eb_session=' + await hs256({ sub: 'u1', tv: 0, exp: exp() }, SECRET);
+  for (const [path, feature] of [['/api/patterns', 'pattern-insights'], ['/api/recharge-menu', 'recharge-menu']]) {
+    const r = await worker.fetch(new Request(ORIGIN + path, { headers: { Cookie: cookie } }), { JWT_SECRET: SECRET, DB: userDB }, { waitUntil() {} });
+    assert.equal(r.status, 402, path);
+    assert.deepEqual(await r.json(), { error: 'Pro required', feature });
+  }
 });
 
-test('pro-refresh is off without PRO_REFRESH_URL', async () => {
-  const r = await worker.fetch(new Request('https://copy.example.com/api/pro-refresh', { method: 'POST', headers: { Origin: 'https://copy.example.com', 'Content-Type': 'application/json' }, body: JSON.stringify({ token: 'x' }) }),
-    { JWT_SECRET: 'test-secret-test-secret-test-secret-1234', DB }, { waitUntil() {} });
-  assert.equal(r.status, 404);
+test('account delete asks for the password, nothing else works', async () => {
+  const userDB = { ...DB, prepare(sql) { const st = { bind() { return st; }, async first() { return /FROM users/.test(sql) ? { token_version: 0, email: 'a@example.com', password_hash: 'pbkdf2:00:00' } : null; }, async run() { return { meta: { changes: 1 } }; }, async all() { return { results: [] }; } }; return st; } };
+  const cookie = 'eb_session=' + await hs256({ sub: 'u1', tv: 0, exp: exp() }, SECRET);
+  const token = await hs256({ v: 1, email: 'a@example.com', pro_until: null, exp: exp() }, SECRET);
+  const r = await worker.fetch(new Request(ORIGIN + '/api/auth/account', { method: 'DELETE', headers: { Origin: ORIGIN, Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify({ [`${HUB}_pro_jwt`]: token, confirm: 'DELETE' }) }),
+    { JWT_SECRET: SECRET, [`${HUB.toUpperCase()}_JWT_SECRET`]: SECRET, DB: userDB }, { waitUntil() {} });
+  assert.equal(r.status, 400);
+  assert.match((await r.json()).error, /password/i);
 });
 
 test('no session secret: sign up, verify and log in answer with a setup message and write nothing', async () => {

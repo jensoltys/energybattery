@@ -2,7 +2,7 @@
 
 **An energy tracker that works like a phone battery.** Log how charged you feel a few times a day, tag what you were doing, and see what fills you up and what drains you. Glow the firefly keeps you company and her lantern fills with your day.
 
-**[Start with a free plan at energybattery.app](https://energybattery.app)**. No setup, no card. Or run your own copy with the code in this repo.
+Don't want to host it yourself? Use the hosted version at **[energybattery.app](https://energybattery.app)**. It has a free plan, with no setup and no card. Or run your own copy with the code in this repo.
 
 ![The Energy Battery app: Glow the firefly on the left saying "middle of the road. could go either way." above a 12-day streak bar, and the Check In tab on the right with an energy slider set to 5, Today and Afternoon picked, activity tags like Exercise, Sleep, Work and Caffeine, and boxes for what charged and drained you](public/guide-app.webp)
 
@@ -30,11 +30,11 @@ It isn't a medical tool and doesn't diagnose anything. It also works on your pho
 
 ### 1. Use the hosted version (easiest)
 
-Go to **[energybattery.app](https://energybattery.app)** and sign up. The free plan gives you unlimited check-ins, the battery, the streak and the last 7 days of history. Nothing older is deleted, it's just tucked out of view. Pro opens your full history and the Patterns tab. Pro comes through the [Jen Built It App Hub](https://jenbuiltit.com/app-hub): $7 a month, $59 a year or $119 once, and one Pro covers all five apps in the hub. Paying for Pro is also how you support the project.
+Go to **[energybattery.app](https://energybattery.app)** and sign up. The free plan gives you unlimited check-ins, the battery, the streak and the last 7 days of history. Nothing older is deleted, it's just tucked out of view. Pro opens your full history and the Patterns tab. Paying for Pro there is also how you support the project.
 
 ### 2. Run your own copy
 
-**What a copy gives you:** your copy runs the free plan for everyone: unlimited check-ins, the battery, the streak and the last 7 days of history. Pro, with full history and Patterns, isn't sold on a copy. The **Go Pro** button opens a short note that Pro is part of the hosted version at energybattery.app, with no price and no checkout. To offer Pro on your own copy you connect your own Pro hub in Settings.
+**What a copy gives you:** your copy runs the free plan for everyone: unlimited check-ins, the battery, the streak and the last 7 days of history. Pro, with full history and Patterns, isn't sold on a copy. The **Go Pro** button opens a short note that Pro is part of the hosted version at energybattery.app, with no price and no checkout.
 
 Energy Battery runs on Cloudflare Workers with a D1 database. You'll need [Node.js](https://nodejs.org) 22 or newer. Trying it on your own computer needs no Cloudflare account. Putting it online needs one, and a free account is enough.
 
@@ -86,11 +86,8 @@ Use `npm run deploy`, not `npx wrangler deploy`. Only the npm script runs the se
 | `ALERT_WEBHOOK_URL` + `ALERT_TOKEN` | Optional | Get a message when the server hits an error. |
 | `SIGNUP_WEBHOOK_URL` + `SIGNUP_WEBHOOK_SECRET` | Optional | Get a message on each new signup. |
 | `FEEDBACK_WEBHOOK_URL` | Optional | Where the in-app feedback button sends messages. Blank hides the Feedback button. |
-| `PRO_LOOKUP_URL`, `PRO_REFRESH_URL`, `HUB_JWT_SECRET`, `HUB_LOOKUP_SECRET`, `RECAP_SERVICE_SECRET` | Optional | Connect a Pro hub like the one energybattery.app uses. Leave them blank and everyone is on the free plan. The three secrets need 32 or more characters each. A shorter one counts as not set, because a short secret would let anyone forge a login or Pro. |
-| `UPGRADE_URL` | Optional, needs a hub | Where **Go Pro** sends people once your hub is connected (`HUB_JWT_SECRET` set). Must start with `https://` or `http://`. Blank hides Go Pro. |
-| `PRO_PRICE_TEXT` | Optional, needs a hub | The price line in the Pro popup, like `$5 a month`. Blank shows no price. |
 
-**Patterns and full history are Pro-only and need a Pro hub.** On a copy without one they stay locked for everyone, and the Log tab shows the last 7 days.
+**Patterns and full history are Pro-only.** Pro is part of the hosted version, so on a copy they stay locked for everyone, and the Log tab shows the last 7 days. The one function that decides who has Pro is `hasProAccess` in `src/worker.js`.
 
 ### Before you run it publicly
 
@@ -100,18 +97,18 @@ Replace these before you go public:
 - [ ] `YOUR STATE` and `YOUR COUNTY` in `public/legal/terms.html` (governing law and courts).
 - [ ] The source code link in the footers and in `public/legal/terms.html`, if you run a changed version (the AGPL asks you to offer your own code).
 - [ ] The lines in `public/legal/` that depend on your setup: Cloudflare Web Analytics and the optional webhooks in `privacy.html`, and the line marked `EDIT THIS LINE` in `accessibility.html`.
-- [ ] The Pro lines marked `EDIT OR DELETE THIS if your copy has no Pro hub` in `public/legal/terms.html` (sections 1 and 4). They describe buying Pro through a hub with Stripe. Rewrite them for how your copy sells Pro, or delete them if it doesn't. The Pro hub items in `public/legal/privacy.html` say "if this site connects one", so check they still fit.
+- [ ] Section 4 of `public/legal/terms.html` and of `public/legal/privacy.html` (Paid plans). They say your site has no paid plan and takes no payments. Rewrite them if you add one.
 - [ ] `YOUR-DOMAIN` in `public/robots.txt` (uncomment the Sitemap line once you have one).
 - [ ] `public/.well-known/security.txt`: the `security@example.com` contact, the `example.com` address and the `Expires` date.
 - [ ] `public/og.png`, the social share image. It shows energybattery.app. The tags that point to it use your `APP_URL`, so you only swap the picture.
 
-Pro is part of the hosted version. On a copy with no Pro hub connected, every **Go Pro** button opens a short note that Pro lives on energybattery.app. No price or billing line shows, so nobody pays for something that won't work on your copy. Once you connect your own hub, **Go Pro** goes to your `UPGRADE_URL` and the popup shows your `PRO_PRICE_TEXT`. Leave `UPGRADE_URL` blank and Go Pro stays hidden. The app also shows a daily tip that links to my other apps and posts. They're in the `GENERAL_NUDGES` list in `public/app.js`. No affiliate links ship in this repo.
+Pro is part of the hosted version. On a copy, every **Go Pro** button opens a short note that Pro lives on energybattery.app. No price or billing line shows, so nobody pays for something that won't work on your copy. The app also shows a daily tip that links to my other apps and posts. They're in the `GENERAL_NUDGES` list in `public/app.js`. No affiliate links ship in this repo.
 
 ### Keep your copy as safe as energybattery.app
 
 Your copy is built from the same source as energybattery.app, with the hosted site's own hookups turned into optional settings. So it gets the same protections: hashed passwords, a lockout after 5 wrong passwords, a limit on signup-code guesses, reset links that die once one is used, and checks that block requests from other websites. Logging out clears the session on that device, and changing or resetting the password signs out every device. A few of those depend on your setup:
 
-- [ ] **Use a long random `JWT_SECRET`.** The app won't log anyone in without one of 32+ characters. `openssl rand -hex 32` makes a good one. The same goes for the Pro hub secrets if you connect a hub.
+- [ ] **Use a long random `JWT_SECRET`.** The app won't log anyone in without one of 32+ characters. `openssl rand -hex 32` makes a good one.
 - [ ] **Set up email before going live** (`RESEND_API_KEY` and `FROM_EMAIL`). Never set `DEV_LOG_CODES` on a live site.
 - [ ] **Keep secrets out of git.** Store them with `npx wrangler secret put`, never in `wrangler.toml`. `.dev.vars` is already ignored.
 - [ ] **Stay updated.** Security fixes made on energybattery.app get copied here. Click **Watch** at the top of this page to hear about them, then pull and redeploy.
@@ -131,7 +128,7 @@ npm run test:security   # scans for common security mistakes
 
 **Jen Soltys**. I build small apps that fix everyday annoyances at **[Jen Built It](https://jenbuiltit.com)** and write about building with AI at **[jen8n.com](https://jen8n.com)**.
 
-If Energy Battery helps you, the best support is a **[Pro plan](https://jenbuiltit.com/app-hub/upgrade?from=battery)** or a ⭐ on this repo.
+If Energy Battery helps you, the best support is a **[Pro plan on energybattery.app](https://energybattery.app)** or a ⭐ on this repo.
 
 ## Contributing
 

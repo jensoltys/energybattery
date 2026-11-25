@@ -4,7 +4,6 @@
 // Cloudflare Worker + D1 database
 // Auth: PBKDF2 password hashing + HS256 JWT (30-day sessions)
 
-import { verifyHubPro } from './lib/verify-hub-pro.js';
 import { reportServerError, alertPayloadFor, stripAlertHeader, markNoAlert } from './lib/alert.js';
 import { emailLayout, emailPara, emailSmall, emailCode, emailButton } from './lib/email-look.js';
 import { overLimit, hitCount, dropNewest, ipKey } from './lib/ratelimit.js';
@@ -15,42 +14,11 @@ const EMAIL_THEME = {
   bg: '#0F1A1C', card: '#16262A', line: '#24393E', pri: '#FF7F66', pri2: '#E85F45', on: '#2B0C05', a2: '#FFC247', text: '#EEF5F3', muted: '#9BB3AE',
 };
 
-// Pro entitlement check: free-user SSO tokens carry pro_until=null. A verified
-// hubPro payload alone is NOT proof of Pro — must also have a future pro_until.
-function hasProAccess(hubPro) {
-  return !!(hubPro?.email && hubPro?.pro_until && new Date(hubPro.pro_until) > new Date());
-}
-// A hub Pro token names its buyer. It counts only for the account it was bought
-// for; presented by any other account it is treated as absent.
-async function bindHubPro(hubPro, uid, env) {
-  if (!hubPro?.email) return hubPro;
-  const me = await env.DB.prepare('SELECT email FROM users WHERE id=?').bind(uid).first();
-  return me && String(me.email).toLowerCase() === String(hubPro.email).toLowerCase() ? hubPro : null;
-}
-
-// Where Go Pro sends people when this copy has its own Pro hub (HUB_JWT_SECRET set):
-// UPGRADE_URL in wrangler.toml. Blank, or no hub, = no upgrade link anywhere.
-let UPGRADE_BASE = '';
-function upgradeUrl(feature) {
-  if (!UPGRADE_BASE) return undefined;
-  return UPGRADE_BASE + (UPGRADE_BASE.includes('?') ? '&' : '?') + 'feature=' + encodeURIComponent(feature);
-}
-
-// The hub secrets sign logins and Pro, so a short one is as bad as none. Any of
-// these set to fewer than 32 characters is treated as not set, and logged once.
-const HUB_SECRET_NAMES = ['HUB_JWT_SECRET', 'HUB_LOOKUP_SECRET', 'RECAP_SERVICE_SECRET'];
-const MIN_SECRET_LENGTH = 32;
-let warnedShortSecret = false;
-function usableEnv(env) {
-  const short = HUB_SECRET_NAMES.filter(n => env[n] && String(env[n]).length < MIN_SECRET_LENGTH);
-  if (!short.length) return env;
-  if (!warnedShortSecret) {
-    warnedShortSecret = true;
-    console.error(`Ignoring ${short.join(', ')}: set to fewer than ${MIN_SECRET_LENGTH} characters, so treated as not set. Make one with: openssl rand -hex 32`);
-  }
-  const out = Object.create(env);
-  for (const n of short) Object.defineProperty(out, n, { value: '', enumerable: true });
-  return out;
+// Pro on a copy. Pro is part of the hosted version. A copy has no billing, so
+// nobody has Pro here: the free plan applies to everyone and the Pro-only routes
+// answer 402. This is the one place that decides.
+function hasProAccess() {
+  return false;
 }
 
 // Link previews and search engines need full addresses. The pages ship with
@@ -76,8 +44,6 @@ function escapeAttr(s) {
 let APP_BASE = '';
 function setAppBase(env) {
   APP_BASE = String(env.APP_URL || '').replace(/\/+$/, '');
-  const up = String(env.UPGRADE_URL || '').trim();
-  UPGRADE_BASE = env.HUB_JWT_SECRET && /^https?:\/\//i.test(up) ? up : '';
 }
 
 // Per-request CORS headers — never module-scope mutable state.
@@ -90,7 +56,7 @@ function getCorsHeaders(request) {
   return {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Hub-Pro',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin',
     'X-Content-Type-Options': 'nosniff',
@@ -115,10 +81,9 @@ function checkOrigin(request, cors) {
 
 // State-changing routes that skip the Origin check, each with its reason.
 // A route belongs here only if no browser ever calls it with our cookie.
-// Energy Battery has none: its only secret-header route (/api/service/recap)
-// is a GET, the cron runs as scheduled() not fetch(), and there is no Stripe
-// webhook in this app. /api/feedback and /api/pro-refresh are called by our
-// own pages, so they get the check like everything else.
+// Energy Battery has none: the cron runs as scheduled() not fetch(), and there
+// is no payment webhook in this app. /api/feedback is called by our own pages,
+// so it gets the check like everything else.
 const CSRF_EXEMPT = new Set([]);
 
 // ── Session cookie ──────────────────────────────────────────────────────────
@@ -175,7 +140,7 @@ async function logAuth(type, request, { uid, email } = {}) {
   } catch { /* logging never breaks a request */ }
 }
 
-// Email validator — single source of truth for signup, login, reset-request, hub-sso.
+// Email validator: single source of truth for signup, login and reset-request.
 function isValidEmail(s) {
   return typeof s === 'string' && s.length > 3 && s.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 }
@@ -191,7 +156,6 @@ export default {
   // real visitor hitting a server error is a same-minute email, not a
   // someday discovery in the logs.
   async fetch(request, env, ctx) {
-    env = usableEnv(env);
     setAppBase(env);
     // A THROW out of handle() has to become a Response before the 5xx branch
     // below can see it. Without this catch the exception escaped the worker,
@@ -228,7 +192,6 @@ export default {
   // rate-limit rows go, and reset / verification token hashes are deleted 7 days
   // after they expire (used ones expire too, so they go the same way).
   async scheduled(event, env, ctx) {
-    env = usableEnv(env);
     setAppBase(env);
     ctx.waitUntil(purgeExpired(env));
   },
@@ -242,13 +205,6 @@ export default {
 
     const url = new URL(request.url);
     const p = url.pathname;
-
-    // Pro entitlement: if X-Hub-Pro header present, verify it.
-    const hubProToken = request.headers.get('X-Hub-Pro');
-    let hubPro = null;
-    if (hubProToken && env.HUB_JWT_SECRET) {
-      hubPro = await verifyHubPro(hubProToken, env.HUB_JWT_SECRET);
-    }
 
     if (!p.startsWith('/api/')) {
       // /reset/<token> is a virtual route: there is no asset at that path, so
@@ -314,7 +270,6 @@ export default {
       if (p === '/api/auth/logout'        && request.method === 'POST') return logout(cors);
       if (p === '/api/auth/signup'        && request.method === 'POST') return signup(request, env, cors);
       if (p === '/api/auth/login'         && request.method === 'POST') return login(request, env, cors);
-      if (p === '/api/auth/hub-sso'       && request.method === 'POST') return hubSso(request, env, cors);
       if (p === '/api/auth/reset-request' && request.method === 'POST') return resetRequest(request, env, cors);
       if (p === '/api/auth/resend-verification' && request.method === 'POST') return resendVerification(request, env, cors);
       if (p === '/api/auth/resend-code'   && request.method === 'POST') return resendVerification(request, env, cors);
@@ -331,44 +286,17 @@ export default {
         return feedback(request, env, cors);
       }
 
-      // ── Pro token refresh proxy ─────────────────────────
-      // Trades a stale hub Pro token for a fresh one. Stripe renewals cap the
-      // token exp at the billing period end, so a renewed subscriber's cached
-      // token dies at renewal; the hub re-checks entitlement and re-mints.
-      // The browser calls US (same-origin), we call the hub server-side and
-      // pass its JSON + status straight through. On-demand only, never polled.
-      if (p === '/api/pro-refresh' && request.method === 'POST') {
-        const rl = await rateLimit(request, env, 'prorefresh', 30, 60, undefined, cors);
-        if (rl) return rl;
-        return proRefresh(request, env, cors);
-      }
-
-      // ── Recap stats for a Pro hub's weekly email (secret-gated, own auth) ──
-      if (p === '/api/service/recap' && request.method === 'GET') return serviceRecap(url, request, env, cors);
-
-      // ── Pro entitlement status ──────────────────────────
+      // ── What this server offers (no login needed) ───────
       if (p === '/api/pro-status' && request.method === 'GET') {
-        // With a session presented, the token only counts for that account.
-        if (hubPro && hasSession(request)) {
-          try { hubPro = await bindHubPro(hubPro, await requireAuth(request, env, cors), env); } catch { hubPro = null; }
-        }
         return res({
-          is_pro: hasProAccess(hubPro),
-          // False on a copy with no Pro hub: the page then points Go Pro at the hosted version.
-          pro_available: !!env.HUB_JWT_SECRET,
-          // With a hub: where Go Pro goes (UPGRADE_URL, null = hide Go Pro) and an optional price line.
-          upgrade_url: UPGRADE_BASE || null,
-          pro_price_text: (env.HUB_JWT_SECRET && String(env.PRO_PRICE_TEXT || '').trim()) || null,
+          is_pro: hasProAccess(),
           // False when FEEDBACK_WEBHOOK_URL is blank: the page then hides the Feedback button.
           feedback_available: !!env.FEEDBACK_WEBHOOK_URL,
-          email: hubPro?.email || null,
-          pro_until: hubPro?.pro_until || null,
         }, 200, cors);
       }
 
       // ── Authenticated routes ────────────────────────────
       const uid = await requireAuth(request, env, cors);
-      hubPro = await bindHubPro(hubPro, uid, env);
 
       // Per-user write rate limit: 120 writes per minute per user
       if (['POST','PUT','DELETE','PATCH'].includes(request.method)) {
@@ -380,7 +308,7 @@ export default {
       if (p === '/api/account/export' && request.method === 'GET') return exportAccount(uid, env, cors);
 
       // Check-ins
-      if (p === '/api/checkins' && request.method === 'GET')  return getCheckins(uid, url, env, hubPro, cors);
+      if (p === '/api/checkins' && request.method === 'GET')  return getCheckins(uid, url, env, cors);
       if (p === '/api/checkins' && request.method === 'POST') return addCheckin(uid, request, env, cors);
 
       const ciMatch = p.match(/^\/api\/checkins\/([^/]+)$/);
@@ -388,10 +316,10 @@ export default {
       if (ciMatch && request.method === 'DELETE')  return deleteCheckin(uid, ciMatch[1], env, cors);
 
       // Patterns
-      if (p === '/api/patterns' && request.method === 'GET') return getPatterns(uid, env, hubPro, cors);
+      if (p === '/api/patterns' && request.method === 'GET') return getPatterns(uid, env, cors);
 
       // Recharge Menu
-      if (p === '/api/recharge-menu' && request.method === 'GET') return getRechargeMenu(uid, env, hubPro, cors);
+      if (p === '/api/recharge-menu' && request.method === 'GET') return getRechargeMenu(uid, env, cors);
 
       // Profile & settings. /api/me is the boot check: the page can't read
       // the HttpOnly cookie, so one GET here decides "logged in?" (401 = no).
@@ -573,8 +501,7 @@ async function verifyCode(request, env, cors) {
   await env.DB.prepare('UPDATE email_verification_tokens SET used=1 WHERE user_id=? AND used=0').bind(user.id).run();
   // Issue a session EXACTLY like login does.
   const token = await mintSession(user.id, user.token_version, env);
-  const hubProToken = await hubProLookup(user.email, env);
-  return resWithSession({ ...(hubProToken ? { hub_pro_token: hubProToken } : {}), user: { id: user.id, email: user.email, newsletter_consent: user.newsletter_consent === 1 } }, token, cors);
+  return resWithSession({ user: { id: user.id, email: user.email, newsletter_consent: user.newsletter_consent === 1 } }, token, cors);
 }
 
 // Old GET /api/auth/verify-email?token=... from emailed links. Links stopped
@@ -631,35 +558,6 @@ async function purgeExpired(env) {
     env.DB.prepare('DELETE FROM email_daily WHERE day < ?').bind(new Date(now * 1000).toISOString().slice(0, 10)),
   ]);
   console.log(JSON.stringify({ evt: 'purge', deleted: out.map(r => (r.meta && r.meta.changes) || 0) }));
-}
-
-// ── Pro-refresh proxy ───────────────────────────────────────────────────────
-
-// POST /api/pro-refresh  body: {token} → the hub's refresh endpoint (PRO_REFRESH_URL).
-// Hub contract: 200 {valid:true, token, pro_until} | 200 {valid:false} | 400 | 429.
-// We pass the hub's JSON and status through untouched so the client sees the
-// same shape regardless of which side rejected the token.
-async function proRefresh(request, env, cors) {
-  // Optional: PRO_REFRESH_URL is the hub's token refresh endpoint. Unset = off.
-  if (!env.PRO_REFRESH_URL) return res({ valid: false, error: 'Pro refresh is off on this server.' }, 404, cors);
-  const body = (await readJson(request)) || {};
-  const token = body?.token;
-  if (typeof token !== 'string' || !token || token.length > 2048) {
-    return res({ valid: false }, 400, cors);
-  }
-  try {
-    const r = await fetch(env.PRO_REFRESH_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
-    });
-    const data = await r.json().catch(() => null);
-    if (data === null) return res({ valid: false }, 502, cors);
-    return res(data, r.status, cors);
-  } catch (e) {
-    console.error('pro-refresh proxy failed', e.message);
-    return res({ valid: false }, 502, cors);
-  }
 }
 
 // ── Rate Limiting ───────────────────────────────────────────────────────────
@@ -933,60 +831,6 @@ async function notifySignup(env, appName, email, appNewsletterConsent) {
   }).catch(() => {});
 }
 
-// Hub SSO: verify hub Pro JWT locally with HUB_JWT_SECRET, find-or-create the
-// user, mint a Battery session JWT. Auto-created users get a random sentinel
-// password_hash and can set a real password via forgot-password later.
-async function hubSso(request, env, cors) {
-  const body = (await readJson(request)) || {};
-  const hubJwt = body.hub_pro_jwt;
-  if (!hubJwt || typeof hubJwt !== 'string' || hubJwt.length > 4096) {
-    return res({ error: 'Missing hub token' }, 400, cors);
-  }
-  if (!env.HUB_JWT_SECRET) return res({ error: 'Hub sign-in is off on this server.' }, 404, cors);
-  const payload = await verifyHubPro(hubJwt, env.HUB_JWT_SECRET);
-  if (!payload || !payload.email) {
-    return res({ error: 'Invalid or expired hub token' }, 401, cors);
-  }
-  const emailLower = String(payload.email).trim().toLowerCase();
-  if (!isValidEmail(emailLower)) {
-    return res({ error: 'Invalid hub token email' }, 401, cors);
-  }
-  let user = await env.DB.prepare(
-    'SELECT id, email, newsletter_consent, token_version, email_verified FROM users WHERE email = ?'
-  ).bind(emailLower).first();
-
-  // A hub-verified user with no usable password: the sentinel never matches,
-  // so "Forgot password" is the only way to set one.
-  const randomSentinel = () => {
-    const randSalt = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join('');
-    const randHash = [...crypto.getRandomValues(new Uint8Array(32))].map(b => b.toString(16).padStart(2, '0')).join('');
-    return `pbkdf2:${randSalt}:${randHash}`;
-  };
-  if (user && !user.email_verified) {
-    // The hub proved this email. Whoever set the row's password never did, so
-    // that password is dropped and its sessions are revoked along with it.
-    await env.DB.prepare('UPDATE users SET email_verified=1, verified_at=COALESCE(verified_at, ?), password_hash=?, token_version=COALESCE(token_version,0)+1 WHERE id=?')
-      .bind(new Date().toISOString(), randomSentinel(), user.id).run();
-    user.token_version = (user.token_version ?? 0) + 1;
-  }
-
-  if (!user) {
-    const id = crypto.randomUUID();
-    const sentinel = randomSentinel();
-    const now = new Date().toISOString();
-    await env.DB.prepare(
-      'INSERT INTO users (id, email, password_hash, newsletter_consent, timezone, created_at, email_verified, verified_at) VALUES (?, ?, ?, 0, ?, ?, 1, ?)'
-    ).bind(id, emailLower, sentinel, 'America/New_York', now, now).run();
-    user = { id, email: emailLower, newsletter_consent: 0, token_version: 0 };
-  }
-
-  const token = await mintSession(user.id, user.token_version, env);
-  await logAuth('login_ok', request, { uid: user.id });
-  return resWithSession({
-    user: { id: user.id, email: user.email, newsletter_consent: user.newsletter_consent === 1 },
-  }, token, cors);
-}
-
 async function login(request, env, cors) {
   const reqBody = await readJson(request);
   if (!reqBody || typeof reqBody !== 'object') return res({ error: 'Invalid request body.' }, 400, cors);
@@ -1023,31 +867,7 @@ async function login(request, env, cors) {
   }
   const token = await mintSession(user.id, user.token_version, env);
   await logAuth('login_ok', request, { uid: user.id });
-  const hubProToken = await hubProLookup(user.email, env);
-  return resWithSession({ ...(hubProToken ? { hub_pro_token: hubProToken } : {}), user: { id: user.id, email: user.email, newsletter_consent: user.newsletter_consent === 1 } }, token, cors);
-}
-
-// Pro follows the account, not the browser. At login, ask the hub whether
-// this email has Pro and carry a fresh hub token back in the login response —
-// otherwise a new device/cleared storage stays free until the user thinks to
-// relaunch from the hub. Never blocks login: any failure → null.
-async function hubProLookup(email, env) {
-  // Optional: PRO_LOOKUP_URL + HUB_LOOKUP_SECRET connect a Pro hub. Unset = free plan for everyone.
-  if (!env.PRO_LOOKUP_URL || !env.HUB_LOOKUP_SECRET) return null;
-  try {
-    const r = await fetch(env.PRO_LOOKUP_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Internal-Secret': env.HUB_LOOKUP_SECRET },
-      body: JSON.stringify({ email, app: 'energy-battery' }),
-      signal: AbortSignal.timeout(4000),
-    });
-    if (!r.ok) return null;
-    const j = await r.json().catch(() => null);
-    return j && j.pro === true && typeof j.token === 'string' ? j.token : null;
-  } catch (e) {
-    console.error('hubProLookup failed', e.message);
-    return null;
-  }
+  return resWithSession({ user: { id: user.id, email: user.email, newsletter_consent: user.newsletter_consent === 1 } }, token, cors);
 }
 
 async function resetRequest(request, env, cors) {
@@ -1133,8 +953,7 @@ async function resetConfirm(request, env, cors) {
   await clearPasswordTries(env, String(user.email).toLowerCase());
   await logAuth('password_reset', request, { uid: user.id });
   const jwt = await mintSession(user.id, user.token_version, env);
-  const hubProToken = await hubProLookup(user.email, env);
-  return resWithSession({ ...(hubProToken ? { hub_pro_token: hubProToken } : {}), user: { id: user.id, email: user.email, newsletter_consent: user.newsletter_consent === 1 } }, jwt, cors);
+  return resWithSession({ user: { id: user.id, email: user.email, newsletter_consent: user.newsletter_consent === 1 } }, jwt, cors);
 }
 
 // ── Profile routes ──────────────────────────────────────────────────────────
@@ -1210,34 +1029,20 @@ async function changePassword(uid, request, env, cors) {
 }
 
 // Account delete needs a fresh proof, so a stolen JWT alone can't wipe data.
-// Two proofs are accepted, either one is enough:
-//   - current_password, for any account that has one;
-//   - hub_pro_jwt plus confirm:"DELETE", for accounts made through the App Hub
-//     that never set a password (their hash is a random sentinel nobody can
-//     type). The hub token is checked here with HUB_JWT_SECRET and must name
-//     this account's email: the same proof hub-sso accepts to log in.
+// The proof is the account's current password.
 async function deleteAccount(uid, request, env, cors) {
   const body = await readJson(request);
   if (!body || typeof body !== 'object' || Array.isArray(body)) return res({ error: 'Invalid request body.' }, 400, cors);
   const user = await env.DB.prepare('SELECT email, password_hash FROM users WHERE id=?').bind(uid).first();
   if (!user) return res({ error: 'Not found' }, 404, cors);
-  if (body.hub_pro_jwt !== undefined) {
-    if (body.confirm !== 'DELETE') return res({ error: 'Type DELETE to confirm.' }, 400, cors);
-    const hub = typeof body.hub_pro_jwt === 'string' && body.hub_pro_jwt.length <= 4096 && env.HUB_JWT_SECRET
-      ? await verifyHubPro(body.hub_pro_jwt, env.HUB_JWT_SECRET) : null;
-    if (!hub || String(hub.email || '').toLowerCase() !== String(user.email).toLowerCase()) {
-      return res({ error: "We couldn't confirm your App Hub sign-in. Open the App Hub, launch Energy Battery from there, then try again. Or use Forgot password to set a password first." }, 401, cors);
-    }
-  } else {
-    const currentPassword = body.current_password;
-    if (typeof currentPassword !== 'string' || !currentPassword || currentPassword.length > 200) {
-      return res({ error: 'Password required to delete account' }, 400, cors);
-    }
-    // Shares the login lockout, so a stolen session can't be used to guess the password.
-    if (await passwordTryRefused(env, String(user.email).toLowerCase(), request)) return lockedOut(cors);
-    if (!await checkPw(currentPassword, user.password_hash)) {
-      return res({ error: 'Password is incorrect' }, 401, cors);
-    }
+  const currentPassword = body.current_password;
+  if (typeof currentPassword !== 'string' || !currentPassword || currentPassword.length > 200) {
+    return res({ error: 'Password required to delete account' }, 400, cors);
+  }
+  // Shares the login lockout, so a stolen session can't be used to guess the password.
+  if (await passwordTryRefused(env, String(user.email).toLowerCase(), request)) return lockedOut(cors);
+  if (!await checkPw(currentPassword, user.password_hash)) {
+    return res({ error: 'Password is incorrect' }, 401, cors);
   }
   await clearPasswordTries(env, String(user.email).toLowerCase());
   await env.DB.batch([
@@ -1270,9 +1075,9 @@ async function exportAccount(uid, env, cors) {
 
 // ── Check-in routes ─────────────────────────────────────────────────────────
 
-async function getCheckins(uid, url, env, hubPro, cors) {
+async function getCheckins(uid, url, env, cors) {
   let days = parseInt(url.searchParams.get('days')) || 90;
-  const isPro = hasProAccess(hubPro);
+  const isPro = hasProAccess();
   // Free tier: cap window at 7 days regardless of requested days param
   if (!isPro) days = Math.min(days, 7);
   const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
@@ -1437,12 +1242,11 @@ function soloPhrases(counter, limit) {
     .map(([, v]) => v.text);
 }
 
-async function getRechargeMenu(uid, env, hubPro, cors) {
-  if (!hasProAccess(hubPro)) {
+async function getRechargeMenu(uid, env, cors) {
+  if (!hasProAccess()) {
     return res({
       error: 'Pro required',
       feature: 'recharge-menu',
-      upgrade_url: upgradeUrl('recharge-menu'),
     }, 402, cors);
   }
   const rows = (await env.DB.prepare(
@@ -1535,12 +1339,11 @@ async function getRechargeMenu(uid, env, hubPro, cors) {
   }, 200, cors);
 }
 
-async function getPatterns(uid, env, hubPro, cors) {
-  if (!hasProAccess(hubPro)) {
+async function getPatterns(uid, env, cors) {
+  if (!hasProAccess()) {
     return res({
       error: 'Pro required',
       feature: 'pattern-insights',
-      upgrade_url: upgradeUrl('pattern-insights'),
     }, 402, cors);
   }
   // Average energy by time of day
@@ -1605,10 +1408,6 @@ async function getPatterns(uid, env, hubPro, cors) {
   }, 200, cors);
 }
 
-// ── Recap stats endpoint ───────────────────────────────────
-// Called by a connected Pro hub's weekly recap job with the shared RECAP_SERVICE_SECRET.
-// The hub decides who is Pro; this endpoint only reports a user's week.
-
 function timingSafeEqualStr(a, b) {
   if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
   let diff = 0;
@@ -1616,87 +1415,6 @@ function timingSafeEqualStr(a, b) {
   return diff === 0;
 }
 
-const WEEKDAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-
-async function serviceRecap(url, request, env, cors) {
-  const provided = request.headers.get('X-Internal-Secret') || '';
-  if (!env.RECAP_SERVICE_SECRET || !timingSafeEqualStr(provided, env.RECAP_SERVICE_SECRET)) {
-    return res({ error: 'Unauthorized' }, 401, cors);
-  }
-  const email = (url.searchParams.get('email') || '').trim().toLowerCase();
-  const start = url.searchParams.get('start') || '';
-  const end = url.searchParams.get('end') || '';
-  if (!email || !/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
-    return res({ error: 'email, start, end required' }, 400, cors);
-  }
-  const user = await env.DB.prepare('SELECT id, timezone FROM users WHERE email=?').bind(email).first();
-  if (!user) return res({ found: false }, 200, cors);
-
-  // Count + average energy over the window (inclusive).
-  const agg = await env.DB.prepare(
-    'SELECT COUNT(*) as n, AVG(energy_level) as avg, COUNT(DISTINCT checkin_date) as days FROM checkins WHERE user_id=? AND checkin_date BETWEEN ? AND ?'
-  ).bind(user.id, start, end).first();
-  const checkinCount = agg?.n || 0;
-  const avgEnergy = checkinCount ? Math.round(agg.avg * 10) / 10 : 0;
-
-  // Best weekday by average energy; needs at least 2 distinct days to mean anything.
-  let bestDay = null;
-  if ((agg?.days || 0) >= 2) {
-    const top = await env.DB.prepare(
-      "SELECT CAST(strftime('%w', checkin_date) AS INTEGER) as dow, AVG(energy_level) as avg FROM checkins WHERE user_id=? AND checkin_date BETWEEN ? AND ? GROUP BY dow ORDER BY avg DESC LIMIT 1"
-    ).bind(user.id, start, end).first();
-    if (top && top.dow >= 0 && top.dow <= 6) bestDay = WEEKDAY_NAMES[top.dow];
-  }
-
-  // Tag averages over the window — same aggregation as /api/patterns, but
-  // scoped to the recap week and requiring 2+ occurrences per tag.
-  const tagged = await env.DB.prepare(
-    'SELECT energy_level, tags FROM checkins WHERE user_id=? AND checkin_date BETWEEN ? AND ? AND tags IS NOT NULL'
-  ).bind(user.id, start, end).all();
-  // Null-prototype: a stored tag named "__proto__" or "constructor" must never
-  // resolve to Object.prototype and poison every request in the isolate.
-  const tagTotals = Object.create(null);
-  for (const ci of (tagged.results || [])) {
-    let tags;
-    try { tags = JSON.parse(ci.tags); } catch { continue; }
-    if (!Array.isArray(tags)) continue;
-    for (const tag of tags) {
-      if (!tagTotals[tag]) tagTotals[tag] = { sum: 0, count: 0 };
-      tagTotals[tag].sum += ci.energy_level;
-      tagTotals[tag].count++;
-    }
-  }
-  const qualifying = Object.entries(tagTotals)
-    .filter(([, v]) => v.count >= 2)
-    .map(([tag, v]) => ({ tag, avg: v.sum / v.count }))
-    .sort((a, b) => b.avg - a.avg);
-  const topCharger = qualifying.length ? qualifying[0].tag : null;
-  // With a single qualifying tag it would be charger AND drainer; call it a
-  // charger and leave drainer null rather than send a contradictory email.
-  const topDrainer = qualifying.length >= 2 ? qualifying[qualifying.length - 1].tag : null;
-
-  // Current streak — exact same computation as /api/checkins: all check-in
-  // dates (not just the window), "today" in the user's own timezone.
-  const dates = await env.DB.prepare(
-    'SELECT DISTINCT checkin_date FROM checkins WHERE user_id=? ORDER BY checkin_date DESC'
-  ).bind(user.id).all();
-  const currentStreak = calcStreak((dates.results || []).map(d => d.checkin_date), todayInTz(user.timezone));
-
-  return res({
-    found: true,
-    stats: {
-      checkin_count: checkinCount,
-      avg_energy: avgEnergy,
-      best_day: bestDay,
-      top_charger: topCharger,
-      top_drainer: topDrainer,
-      current_streak: currentStreak,
-      skip: checkinCount === 0,
-    },
-  }, 200, cors);
-}
-
-// "Today" (YYYY-MM-DD) in the given IANA timezone; falls back to UTC.
 function todayInTz(tz) {
   try {
     return new Intl.DateTimeFormat('en-CA', { timeZone: tz || 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());

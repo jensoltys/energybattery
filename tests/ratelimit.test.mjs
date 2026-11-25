@@ -202,7 +202,7 @@ test('a body that is not a JSON object is a 400 or a plain 200, never a 500', as
   const { env, db } = freshEnv(); await addUser(db);
   await quiet(async () => {
     let n = 0;
-    for (const path of ['signup', 'login', 'verify-code', 'resend-code', 'reset-request', 'reset-confirm', 'hub-sso']) {
+    for (const path of ['signup', 'login', 'verify-code', 'resend-code', 'reset-request', 'reset-confirm']) {
       for (const raw of ['5', 'null', '"s"', '[1]', '{bad']) {
         const r = await send(env, 'POST', '/api/auth/' + path, raw, { ip: '198.51.100.' + (n++) });
         assert.ok(r.status < 500, `${path} ${raw} gave ${r.status}`);
