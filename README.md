@@ -117,6 +117,10 @@ Found a security problem? See [SECURITY.md](SECURITY.md).
 
 ---
 
+## Built with
+
+Energy Battery is a Cloudflare Worker with a D1 database and a job that runs once a day. It uses Resend for signup codes and password resets, and the tests run on Node's built-in test runner.
+
 ## Tests
 
 ```bash
